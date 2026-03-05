@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors - Spotify-inspired -->
+    <color name="green_primary">#FF1DB954</color>
+    <color name="green_primary_dark">#FF1AA34A</color>
+    <color name="green_primary_light">#FF1ED760</color>
+
+    <!-- Background Colors -->
+    <color name="background_dark">#FF121212</color>
+    <color name="background_surface">#FF1E1E1E</color>
+    <color name="background_card">#FF282828</color>
+    <color name="background_elevated">#FF333333</color>
+    <color name="background_input">#FF3E3E3E</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FFB3B3B3</color>
+    <color name="text_tertiary">#FF727272</color>
+    <color name="text_on_primary">#FF000000</color>
+
+    <!-- Accent Colors -->
+    <color name="accent_error">#FFFF4444</color>
+    <color name="accent_warning">#FFFFAB40</color>
+
+    <!-- Status Bar / Nav Bar -->
+    <color name="status_bar">#FF000000</color>
+    <color name="nav_bar">#FF121212</color>
+
+    <!-- Bottom Navigation -->
+    <color name="bottom_nav_background">#FF282828</color>
+    <color name="bottom_nav_active">#FFFFFFFF</color>
+    <color name="bottom_nav_inactive">#FFB3B3B3</color>
+
+    <!-- Player -->
+    <color name="player_background">#FF121212</color>
+    <color name="seekbar_progress">#FF1DB954</color>
+    <color name="seekbar_thumb">#FFFFFFFF</color>
+    <color name="seekbar_track">#FF535353</color>
+
+    <!-- Shimmer / Loading -->
+    <color name="shimmer_base">#FF282828</color>
+    <color name="shimmer_highlight">#FF3E3E3E</color>
+
+    <!-- Transparent -->
+    <color name="transparent">#00000000</color>
+    <color name="semi_transparent_black">#80000000</color>
+</resources>

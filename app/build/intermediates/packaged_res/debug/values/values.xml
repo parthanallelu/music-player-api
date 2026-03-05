@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent_error">#FFFF4444</color>
+    <color name="accent_warning">#FFFFAB40</color>
+    <color name="background_card">#FF282828</color>
+    <color name="background_dark">#FF121212</color>
+    <color name="background_elevated">#FF333333</color>
+    <color name="background_input">#FF3E3E3E</color>
+    <color name="background_surface">#FF1E1E1E</color>
+    <color name="bottom_nav_active">#FFFFFFFF</color>
+    <color name="bottom_nav_background">#FF282828</color>
+    <color name="bottom_nav_inactive">#FFB3B3B3</color>
+    <color name="green_primary">#FF1DB954</color>
+    <color name="green_primary_dark">#FF1AA34A</color>
+    <color name="green_primary_light">#FF1ED760</color>
+    <color name="nav_bar">#FF121212</color>
+    <color name="player_background">#FF121212</color>
+    <color name="seekbar_progress">#FF1DB954</color>
+    <color name="seekbar_thumb">#FFFFFFFF</color>
+    <color name="seekbar_track">#FF535353</color>
+    <color name="semi_transparent_black">#80000000</color>
+    <color name="shimmer_base">#FF282828</color>
+    <color name="shimmer_highlight">#FF3E3E3E</color>
+    <color name="status_bar">#FF000000</color>
+    <color name="text_on_primary">#FF000000</color>
+    <color name="text_primary">#FFFFFFFF</color>
+    <color name="text_secondary">#FFB3B3B3</color>
+    <color name="text_tertiary">#FF727272</color>
+    <color name="transparent">#00000000</color>
+    <dimen name="album_art_large">280dp</dimen>
+    <dimen name="album_art_medium">64dp</dimen>
+    <dimen name="album_art_small">48dp</dimen>
+    <dimen name="bottom_nav_height">56dp</dimen>
+    <dimen name="corner_radius_lg">16dp</dimen>
+    <dimen name="corner_radius_md">12dp</dimen>
+    <dimen name="corner_radius_sm">8dp</dimen>
+    <dimen name="corner_radius_xl">24dp</dimen>
+    <dimen name="mini_player_height">64dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_xxl">48dp</dimen>
+    <dimen name="text_body">16sp</dimen>
+    <dimen name="text_caption">12sp</dimen>
+    <dimen name="text_header">24sp</dimen>
+    <dimen name="text_player_title">22sp</dimen>
+    <dimen name="text_subtitle">14sp</dimen>
+    <dimen name="text_title">18sp</dimen>
+    <string name="add_to_playlist">Add to Playlist</string>
+    <string name="app_name">MusicPlayer</string>
+    <string name="cancel">Cancel</string>
+    <string name="create">Create</string>
+    <string name="create_playlist">Create Playlist</string>
+    <string name="delete">Delete</string>
+    <string name="download">Download</string>
+    <string name="download_failed">Download failed</string>
+    <string name="downloaded">Downloaded</string>
+    <string name="downloading">Downloading…</string>
+    <string name="downloads">Downloads</string>
+    <string name="error_loading">Error loading songs</string>
+    <string name="error_network">No internet connection</string>
+    <string name="error_playback">Playback error occurred</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="local_music">Local Music</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_search">Search</string>
+    <string name="next">Next</string>
+    <string name="no_downloads">No downloaded songs</string>
+    <string name="no_local_music">No local music found</string>
+    <string name="no_results">No results found</string>
+    <string name="no_songs">No songs available</string>
+    <string name="now_playing">Now Playing</string>
+    <string name="offline_library">Offline Library</string>
+    <string name="pause">Pause</string>
+    <string name="permission_required">Permission required to access music files</string>
+    <string name="play">Play</string>
+    <string name="playlist_name">Playlist name</string>
+    <string name="playlists">Playlists</string>
+    <string name="previous">Previous</string>
+    <string name="recently_played">Recently Played</string>
+    <string name="remove_from_playlist">Remove from Playlist</string>
+    <string name="repeat">Repeat</string>
+    <string name="retry">Retry</string>
+    <string name="search_hint">Search songs, artists…</string>
+    <string name="shuffle">Shuffle</string>
+    <string name="song_downloaded">Song downloaded successfully</string>
+    <style name="HeaderText">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">@dimen/text_header</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+    <style name="PrimaryButton" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/green_primary</item>
+        <item name="android:textColor">@color/text_on_primary</item>
+        <item name="cornerRadius">@dimen/corner_radius_xl</item>
+    </style>
+    <style name="SongCardStyle" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/background_card</item>
+        <item name="cardCornerRadius">@dimen/corner_radius_sm</item>
+        <item name="cardElevation">0dp</item>
+    </style>
+    <style name="SubtitleText">
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:textSize">@dimen/text_subtitle</item>
+        <item name="android:fontFamily">sans-serif</item>
+    </style>
+    <style name="TextButton" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+    <style name="Theme.MusicPlayer" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/green_primary</item>
+        <item name="colorPrimaryDark">@color/green_primary_dark</item>
+        <item name="colorAccent">@color/green_primary</item>
+        <item name="colorOnPrimary">@color/text_on_primary</item>
+        <item name="colorSecondary">@color/green_primary</item>
+        <item name="colorOnSecondary">@color/text_on_primary</item>
+        <item name="android:colorBackground">@color/background_dark</item>
+        <item name="colorSurface">@color/background_surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:statusBarColor">@color/status_bar</item>
+        <item name="android:navigationBarColor">@color/nav_bar</item>
+        <item name="android:windowBackground">@color/background_dark</item>
+    </style>
+    <style name="Theme.MusicPlayer.Splash" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:statusBarColor">@color/background_dark</item>
+        <item name="android:navigationBarColor">@color/background_dark</item>
+        <item name="android:windowBackground">@color/background_dark</item>
+    </style>
+    <style name="TitleText">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">@dimen/text_title</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+</resources>
