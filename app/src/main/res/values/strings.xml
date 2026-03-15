@@ -10,6 +10,11 @@
     <string name="offline_library">Offline Library</string>
     <string name="local_music">Local Music</string>
     <string name="recently_played">Recently Played</string>
+    <string name="trending_now">Trending Now</string>
+    <string name="hindi_hits">Hindi Hits</string>
+    <string name="english_hits">English Hits</string>
+    <string name="techno_mix">Techno Mix</string>
+    
     <string name="playlists">Playlists</string>
     <string name="downloads">Downloads</string>
     <string name="download">Download</string>

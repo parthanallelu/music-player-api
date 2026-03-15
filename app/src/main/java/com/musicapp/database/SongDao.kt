@@ -42,4 +42,16 @@ interface SongDao {
 
     @Query("UPDATE songs SET isDownloaded = 0, localFilePath = null WHERE id = :songId")
     suspend fun removeDownload(songId: String)
+
+    @Query("SELECT * FROM songs WHERE localPlayCount > 3 ORDER BY localPlayCount DESC LIMIT 20")
+    fun getMostPlayedSongs(): LiveData<List<Song>>
+
+    @Query("SELECT genre FROM songs GROUP BY genre ORDER BY SUM(localPlayCount) DESC LIMIT 1")
+    suspend fun getFavoriteGenre(): String?
+
+    @Query("SELECT * FROM songs WHERE genre = :genre ORDER BY localPlayCount DESC LIMIT 20")
+    fun getSongsByGenre(genre: String): LiveData<List<Song>>
+
+    @Query("UPDATE songs SET localPlayCount = localPlayCount + 1 WHERE id = :songId")
+    suspend fun incrementPlayCount(songId: String)
 }

@@ -9,22 +9,24 @@ import retrofit2.http.Query
 
 interface MusicApiService {
 
-    // JioSaavn search endpoint
-    @GET("api.php?__call=search.getResults")
-    suspend fun searchSongs(
-        @Query("query") query: String,
-        @Query("type") type: String = "song",
-        @Query("page") page: Int = 1,
-        @Query("limit") limit: Int = 10,
-        @Query("_format") format: String = "json",
-        @Query("_marker") marker: String = "0"
+    // Node proxy popular songs endpoint
+    @GET("songs")
+    suspend fun getSongs(
+        @Query("q") query: String? = null,
+        @Query("limit") limit: Int = 50
     ): Response<SongResponse>
 
-    // JioSaavn song details endpoint
-    @GET("api.php?__call=song.getDetails")
+    // Node proxy search endpoint
+    @GET("search")
+    suspend fun searchSongs(
+        @Query("q") query: String,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20
+    ): Response<SongResponse>
+
+    // Node proxy single song endpoint
+    @GET("songs/{id}")
     suspend fun getSongDetails(
-        @Query("pids") songIds: String,
-        @Query("_format") format: String = "json",
-        @Query("_marker") marker: String = "0"
-    ): Response<Map<String, Song>>
+        @Path("id") songId: String
+    ): Response<Song>
 }

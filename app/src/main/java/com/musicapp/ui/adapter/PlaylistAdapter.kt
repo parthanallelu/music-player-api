@@ -13,11 +13,11 @@ import com.musicapp.model.Playlist
 
 class PlaylistAdapter(
     private val onPlaylistClick: (Playlist) -> Unit,
-    private val onPlaylistLongClick: ((Playlist) -> Unit)? = null
+    private val onPlaylistLongClick: (Playlist) -> Unit
 ) : ListAdapter<Playlist, PlaylistAdapter.PlaylistViewHolder>(PlaylistDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlaylistViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_playlist, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_playlist_card, parent, false)
         return PlaylistViewHolder(view)
     }
 
@@ -26,16 +26,21 @@ class PlaylistAdapter(
     }
 
     inner class PlaylistViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val icon: ImageView = itemView.findViewById(R.id.ivPlaylistIcon)
-        private val name: TextView = itemView.findViewById(R.id.tvPlaylistName)
+        private val ivCover: ImageView = itemView.findViewById(R.id.ivCover)
+        private val tvTitle: TextView = itemView.findViewById(R.id.tvTitle)
+        private val tvSubtitle: TextView = itemView.findViewById(R.id.tvSubtitle)
 
         fun bind(playlist: Playlist) {
-            name.text = playlist.name
-            icon.setImageResource(R.drawable.ic_music_note)
+            tvTitle.text = playlist.name
+            tvSubtitle.text = "Playlist" // Or count if available
+            ivCover.setImageResource(R.drawable.bg_album_art_placeholder)
 
-            itemView.setOnClickListener { onPlaylistClick(playlist) }
+            itemView.setOnClickListener {
+                onPlaylistClick(playlist)
+            }
+            
             itemView.setOnLongClickListener {
-                onPlaylistLongClick?.invoke(playlist)
+                onPlaylistLongClick(playlist)
                 true
             }
         }

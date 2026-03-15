@@ -14,13 +14,20 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.musicapp.R
 import com.musicapp.model.Song
+import com.musicapp.repository.MusicRepository
 import com.musicapp.ui.PlayerActivity
 import com.musicapp.util.Constants
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class MusicPlayerService : LifecycleService() {
 
     private var exoPlayer: ExoPlayer? = null
     private val binder = MusicBinder()
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var repository: MusicRepository
 
     inner class MusicBinder : Binder() {
         fun getService(): MusicPlayerService = this@MusicPlayerService
@@ -42,6 +49,7 @@ class MusicPlayerService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
+        repository = MusicRepository(applicationContext)
         initializePlayer()
     }
 
@@ -72,6 +80,12 @@ class MusicPlayerService : LifecycleService() {
                         }
                         Player.STATE_ENDED -> {
                             MusicPlayerService.isPlaying.postValue(false)
+                            val current = MusicPlayerService.currentSong.value
+                            if (current != null && exoPlayer?.hasNextMediaItem() == false) {
+                                serviceScope.launch {
+                                    handleAutoRadio(current)
+                                }
+                            }
                         }
                         else -> {}
                     }
@@ -92,6 +106,51 @@ class MusicPlayerService : LifecycleService() {
             }
         }
         handler.postDelayed(positionUpdater, 500)
+    }
+
+    private suspend fun handleAutoRadio(currentSong: Song) {
+        try {
+            if (currentSong.genre != "unknown" && currentSong.genre.isNotEmpty()) {
+                val genreRes = repository.fetchSongs(currentSong.genre)
+                genreRes.onSuccess { songs ->
+                    val filtered = songs.filter { it.id != currentSong.id && it.source == "jiosaavn" }
+                    if (filtered.isNotEmpty()) {
+                        val nextSong = filtered.random()
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            playSong(nextSong, listOf(nextSong), 0)
+                        }
+                        return
+                    }
+                }
+            }
+            
+            if (currentSong.artist != "Unknown Artist" && currentSong.artist.isNotEmpty()) {
+                val artistRes = repository.searchSongs(currentSong.artist)
+                artistRes.onSuccess { songs ->
+                    val filtered = songs.filter { it.id != currentSong.id && it.source == "jiosaavn" }
+                    if (filtered.isNotEmpty()) {
+                        val nextSong = filtered.random()
+                        android.os.Handler(android.os.Looper.getMainLooper()).post {
+                            playSong(nextSong, listOf(nextSong), 0)
+                        }
+                        return
+                    }
+                }
+            }
+
+            val trendingRes = repository.fetchSongs("top hits")
+            trendingRes.onSuccess { songs ->
+                val filtered = songs.filter { it.id != currentSong.id && it.source == "jiosaavn" }
+                if (filtered.isNotEmpty()) {
+                    val nextSong = filtered.random()
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        playSong(nextSong, listOf(nextSong), 0)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun playSong(song: Song, songs: List<Song> = listOf(song), startIndex: Int = 0) {

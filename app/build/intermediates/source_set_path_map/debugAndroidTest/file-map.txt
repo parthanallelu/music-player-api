@@ -1,6 +1,0 @@
-com.musicapp.test.app-annotation-experimental-1.3.1-0 C:\Users\Parth\.gradle\caches\transforms-3\b8ddf23866bed3281df82c3180030a99\transformed\annotation-experimental-1.3.1\res
-com.musicapp.test.app-core-1.5.0-1 C:\Users\Parth\.gradle\caches\transforms-3\bfa652fc015aff9e77e5922f5fce2212\transformed\core-1.5.0\res
-com.musicapp.test.app-androidTest-2 E:\projects\music_player\app\build\generated\res\resValues\androidTest\debug
-com.musicapp.test.app-mergeDebugAndroidTestResources-3 E:\projects\music_player\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
-com.musicapp.test.app-mergeDebugAndroidTestResources-4 E:\projects\music_player\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
-com.musicapp.test.app-merged_res-5 E:\projects\music_player\app\build\intermediates\merged_res\debugAndroidTest

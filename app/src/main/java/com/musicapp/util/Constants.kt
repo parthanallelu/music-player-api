@@ -2,8 +2,9 @@ package com.musicapp.util
 
 object Constants {
     // Backend API URL
-    // For emulator testing: "http://10.0.2.2:3000/v1/"
-    const val BASE_URL = "https://www.saavn.com/"
+    // For emulator testing:
+    const val BASE_URL = "http://10.0.2.2:3000/v1/"
+    // For real phone deployment: "https://music-player-api-z2sh.onrender.com/v1/"
 
     // Download directory name
     const val DOWNLOAD_DIR = "MusicPlayer"

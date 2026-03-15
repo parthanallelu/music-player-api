@@ -25,22 +25,52 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     val query: LiveData<String> get() = _query
 
     private var searchJob: Job? = null
+    private var currentPage = 1
+    var isLastPage = false
+        private set
 
     fun search(query: String) {
-        _query.value = query
+        val trimmedQuery = query.trim()
+        if (_query.value == trimmedQuery) return
+        
+        _query.value = trimmedQuery
         searchJob?.cancel()
-        if (query.isBlank()) {
+        
+        if (trimmedQuery.isBlank()) {
             _searchResults.value = emptyList()
             return
         }
+        
         searchJob = viewModelScope.launch {
             delay(300) // Debounce
             _isLoading.value = true
-            val result = repository.searchSongs(query)
+            currentPage = 1
+            isLastPage = false
+            
+            val result = repository.searchSongs(trimmedQuery, currentPage)
             result.onSuccess { songs ->
                 _searchResults.value = songs
+                if (songs.size < 20) isLastPage = true
             }.onFailure {
                 _searchResults.value = emptyList()
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun loadMore() {
+        if (_isLoading.value == true || isLastPage) return
+        val currentQuery = _query.value ?: return
+        if (currentQuery.isBlank()) return
+
+        currentPage++
+        searchJob = viewModelScope.launch {
+            _isLoading.value = true
+            val result = repository.searchSongs(currentQuery, currentPage)
+            result.onSuccess { newSongs ->
+                val currentList = _searchResults.value ?: emptyList()
+                _searchResults.value = currentList + newSongs
+                if (newSongs.size < 20) isLastPage = true
             }
             _isLoading.value = false
         }

@@ -1,0 +1,43 @@
+# Android GitIgnore
+# See https://github.com/github/gitignore/blob/main/Android.gitignore
+
+# Built symbols
+bin/
+gen/
+out/
+
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log Files
+*.log
+
+# Android Studio searches and settings
+.idea/
+*.iml
+.idea/modules.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build files
+.externalNativeBuild
+.cxx
+
+# Google Services
+google-services.json
+
+# Node modules
+node_modules/
+package-lock.json

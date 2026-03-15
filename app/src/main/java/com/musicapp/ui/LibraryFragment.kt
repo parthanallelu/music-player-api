@@ -58,7 +58,19 @@ class LibraryFragment : Fragment() {
     private fun setupRecyclerViews() {
         playlistAdapter = PlaylistAdapter(
             onPlaylistClick = { playlist ->
-                Toast.makeText(requireContext(), "Playlist: ${playlist.name}", Toast.LENGTH_SHORT).show()
+                if (playlist.id < 0) {
+                    when (playlist.id) {
+                        -1L -> libraryViewModel.recentlyPlayed.value?.let { songs ->
+                            if (songs.isNotEmpty()) playerViewModel.playSong(songs.first(), songs, 0)
+                        }
+                        -2L -> libraryViewModel.mostPlayed.value?.let { songs ->
+                            if (songs.isNotEmpty()) playerViewModel.playSong(songs.first(), songs, 0)
+                        }
+                        -3L -> Toast.makeText(requireContext(), "Generating Mix...", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(requireContext(), "Playlist: ${playlist.name}", Toast.LENGTH_SHORT).show()
+                }
             },
             onPlaylistLongClick = { playlist ->
                 AlertDialog.Builder(requireContext(), R.style.Theme_MusicPlayer)

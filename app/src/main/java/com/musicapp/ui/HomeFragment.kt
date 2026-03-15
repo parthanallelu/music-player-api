@@ -4,15 +4,12 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.musicapp.R
 import com.musicapp.databinding.FragmentHomeBinding
-import com.musicapp.player.DownloadWorker
-import com.musicapp.player.PlayerManager
-import com.musicapp.ui.adapter.SongAdapter
+import com.musicapp.ui.adapter.SongCardAdapter
 import com.musicapp.ui.viewmodel.HomeViewModel
 import com.musicapp.ui.viewmodel.PlayerViewModel
 import java.util.Calendar
@@ -23,8 +20,12 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
     private val homeViewModel: HomeViewModel by activityViewModels()
     private val playerViewModel: PlayerViewModel by activityViewModels()
-    private lateinit var songAdapter: SongAdapter
-    private lateinit var recentAdapter: SongAdapter
+    private lateinit var trendingAdapter: SongCardAdapter
+    private lateinit var hindiAdapter: SongCardAdapter
+    private lateinit var englishAdapter: SongCardAdapter
+    private lateinit var technoAdapter: SongCardAdapter
+    private lateinit var recentAdapter: SongCardAdapter
+    private lateinit var recommendedAdapter: SongCardAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
@@ -58,38 +59,91 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupRecyclerViews() {
-        songAdapter = SongAdapter(
-            onSongClick = { song, index ->
-                val songs = homeViewModel.songs.value ?: emptyList()
-                playerViewModel.playSong(song, songs, index)
-            },
-            onDownloadClick = { song ->
-                DownloadWorker.enqueue(requireContext(), song)
-                Toast.makeText(requireContext(), R.string.downloading, Toast.LENGTH_SHORT).show()
-            }
-        )
-        binding.rvSongs.layoutManager = LinearLayoutManager(requireContext())
-        binding.rvSongs.adapter = songAdapter
+        val onSongClick = { song: com.musicapp.model.Song, currentList: List<com.musicapp.model.Song>, index: Int ->
+            playerViewModel.playSong(song, currentList, index)
+        }
 
-        recentAdapter = SongAdapter(
-            onSongClick = { song, _ ->
-                playerViewModel.playSong(song, listOf(song), 0)
-            }
-        )
-        binding.rvRecentlyPlayed.layoutManager = LinearLayoutManager(
-            requireContext(), LinearLayoutManager.HORIZONTAL, false
-        )
+        trendingAdapter = SongCardAdapter { song, index -> 
+            onSongClick(song, homeViewModel.trendingSongs.value ?: emptyList(), index) 
+        }
+        binding.rvTrending.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvTrending.adapter = trendingAdapter
+
+        hindiAdapter = SongCardAdapter { song, index -> 
+            onSongClick(song, homeViewModel.hindiSongs.value ?: emptyList(), index) 
+        }
+        binding.rvHindiHits.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvHindiHits.adapter = hindiAdapter
+
+        englishAdapter = SongCardAdapter { song, index -> 
+            onSongClick(song, homeViewModel.englishSongs.value ?: emptyList(), index) 
+        }
+        binding.rvEnglishHits.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvEnglishHits.adapter = englishAdapter
+
+        technoAdapter = SongCardAdapter { song, index -> 
+            onSongClick(song, homeViewModel.technoSongs.value ?: emptyList(), index) 
+        }
+        binding.rvTechnoHits.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvTechnoHits.adapter = technoAdapter
+
+        recentAdapter = SongCardAdapter { song, index ->
+            onSongClick(song, homeViewModel.recentlyPlayedSongs.value ?: emptyList(), index)
+        }
+        binding.rvRecentlyPlayed.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.rvRecentlyPlayed.adapter = recentAdapter
+
+        recommendedAdapter = SongCardAdapter { song, index -> 
+            onSongClick(song, homeViewModel.recommendedSongs.value ?: emptyList(), index) 
+        }
+        binding.rvRecommended.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvRecommended.adapter = recommendedAdapter
     }
 
     private fun observeData() {
-        homeViewModel.songs.observe(viewLifecycleOwner) { songs ->
-            songAdapter.submitList(songs)
-            binding.swipeRefresh.isRefreshing = false
+        homeViewModel.trendingSongs.observe(viewLifecycleOwner) { songs ->
+            trendingAdapter.submitList(songs)
+            checkRefreshState()
+        }
+        homeViewModel.hindiSongs.observe(viewLifecycleOwner) { songs ->
+            hindiAdapter.submitList(songs)
+            checkRefreshState()
+        }
+        homeViewModel.englishSongs.observe(viewLifecycleOwner) { songs ->
+            englishAdapter.submitList(songs)
+            checkRefreshState()
+        }
+        homeViewModel.technoSongs.observe(viewLifecycleOwner) { songs ->
+            technoAdapter.submitList(songs)
+            checkRefreshState()
+        }
+
+        homeViewModel.recentlyPlayedSongs.observe(viewLifecycleOwner) { songs ->
+            if (songs.isNotEmpty()) {
+                binding.tvRecentlyPlayedLabel.visibility = View.VISIBLE
+                binding.rvRecentlyPlayed.visibility = View.VISIBLE
+                recentAdapter.submitList(songs)
+            } else {
+                binding.tvRecentlyPlayedLabel.visibility = View.GONE
+                binding.rvRecentlyPlayed.visibility = View.GONE
+            }
+        }
+
+        homeViewModel.recommendedSongs.observe(viewLifecycleOwner) { songs ->
+            if (songs.isNotEmpty()) {
+                binding.tvRecommendedLabel.visibility = View.VISIBLE
+                binding.rvRecommended.visibility = View.VISIBLE
+                recommendedAdapter.submitList(songs)
+            } else {
+                binding.tvRecommendedLabel.visibility = View.GONE
+                binding.rvRecommended.visibility = View.GONE
+            }
+            checkRefreshState()
         }
 
         homeViewModel.isLoading.observe(viewLifecycleOwner) { loading ->
             binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+            checkRefreshState()
         }
 
         homeViewModel.error.observe(viewLifecycleOwner) { error ->
@@ -99,6 +153,13 @@ class HomeFragment : Fragment() {
             } else {
                 binding.errorContainer.visibility = View.GONE
             }
+        }
+    }
+
+    private fun checkRefreshState() {
+        val isLoading = homeViewModel.isLoading.value ?: false
+        if (!isLoading) {
+            binding.swipeRefresh.isRefreshing = false
         }
     }
 

@@ -21,9 +21,9 @@ class MusicRepository(context: Context) {
     suspend fun fetchSongs(genre: String = "Hindi"): Result<List<Song>> {
         return try {
             if (NetworkUtils.isNetworkAvailable(appContext)) {
-                val response = apiService.searchSongs(query = genre)
+                val response = apiService.getSongs(query = genre)
                 if (response.isSuccessful) {
-                    val songs = response.body()?.results ?: emptyList()
+                    val songs = response.body()?.songs ?: emptyList()
                     songDao.insertSongs(songs)
                     Result.success(songs)
                 } else {
@@ -41,12 +41,12 @@ class MusicRepository(context: Context) {
         }
     }
 
-    suspend fun searchSongs(query: String): Result<List<Song>> {
+    suspend fun searchSongs(query: String, page: Int = 1): Result<List<Song>> {
         return try {
             if (NetworkUtils.isNetworkAvailable(appContext)) {
-                val response = apiService.searchSongs(query = query)
+                val response = apiService.searchSongs(query = query, page = page)
                 if (response.isSuccessful) {
-                    val songs = response.body()?.results ?: emptyList()
+                    val songs = response.body()?.songs ?: emptyList()
                     songDao.insertSongs(songs)
                     Result.success(songs)
                 } else {
@@ -67,10 +67,9 @@ class MusicRepository(context: Context) {
     suspend fun getSongById(songId: String): Song? {
         return try {
             if (NetworkUtils.isNetworkAvailable(appContext)) {
-                val response = apiService.getSongDetails(songIds = songId)
+                val response = apiService.getSongDetails(songId = songId)
                 if (response.isSuccessful) {
-                    val songMap = response.body() ?: emptyMap()
-                    val song = songMap[songId]
+                    val song = response.body()
                     song?.let { songDao.insertSong(it) }
                     song
                 } else {
@@ -136,5 +135,14 @@ class MusicRepository(context: Context) {
         recentlyPlayedDao.insertRecentlyPlayed(
             RecentlyPlayed(songId = songId, playedAt = System.currentTimeMillis())
         )
+        try {
+            songDao.incrementPlayCount(songId)
+        } catch (e: Exception) {
+            // Ignore if song doesn't exist locally
+        }
     }
+
+    suspend fun getFavoriteGenre(): String? = songDao.getFavoriteGenre()
+    
+    fun getMostPlayedSongs(): LiveData<List<Song>> = songDao.getMostPlayedSongs()
 }

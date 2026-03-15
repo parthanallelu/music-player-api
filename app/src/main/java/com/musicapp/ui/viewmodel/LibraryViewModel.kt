@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.map
 import com.musicapp.model.Playlist
 import com.musicapp.model.Song
 import com.musicapp.repository.MusicRepository
@@ -16,7 +17,17 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     private val repository = MusicRepository(application)
 
-    val playlists: LiveData<List<Playlist>> = repository.getAllPlaylists()
+    val mostPlayed: LiveData<List<Song>> = repository.getMostPlayedSongs()
+    
+    val playlists: LiveData<List<Playlist>> = repository.getAllPlaylists().map { realPlaylists ->
+        val smartPlaylists = listOf(
+            Playlist(id = -1, name = "Recently Played"),
+            Playlist(id = -2, name = "Most Played"),
+            Playlist(id = -3, name = "Favorite Genre Mix")
+        )
+        smartPlaylists + realPlaylists
+    }
+    
     val downloadedSongs: LiveData<List<Song>> = repository.getDownloadedSongs()
     val recentlyPlayed: LiveData<List<Song>> = repository.getRecentlyPlayedSongs()
 
