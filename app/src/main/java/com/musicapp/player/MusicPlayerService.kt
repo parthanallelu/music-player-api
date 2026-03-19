@@ -113,7 +113,7 @@ class MusicPlayerService : LifecycleService() {
             if (currentSong.genre != "unknown" && currentSong.genre.isNotEmpty()) {
                 val genreRes = repository.fetchSongs(currentSong.genre)
                 genreRes.onSuccess { songs ->
-                    val filtered = songs.filter { it.id != currentSong.id && it.source == "jiosaavn" }
+                    val filtered = songs.filter { it.id != currentSong.id && (it.source == "jiosaavn" || it.source == "mega") }
                     if (filtered.isNotEmpty()) {
                         val nextSong = filtered.random()
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
@@ -127,7 +127,7 @@ class MusicPlayerService : LifecycleService() {
             if (currentSong.artist != "Unknown Artist" && currentSong.artist.isNotEmpty()) {
                 val artistRes = repository.searchSongs(currentSong.artist)
                 artistRes.onSuccess { songs ->
-                    val filtered = songs.filter { it.id != currentSong.id && it.source == "jiosaavn" }
+                    val filtered = songs.filter { it.id != currentSong.id && (it.source == "jiosaavn" || it.source == "mega") }
                     if (filtered.isNotEmpty()) {
                         val nextSong = filtered.random()
                         android.os.Handler(android.os.Looper.getMainLooper()).post {
@@ -140,7 +140,7 @@ class MusicPlayerService : LifecycleService() {
 
             val trendingRes = repository.fetchSongs("top hits")
             trendingRes.onSuccess { songs ->
-                val filtered = songs.filter { it.id != currentSong.id && it.source == "jiosaavn" }
+                val filtered = songs.filter { it.id != currentSong.id && (it.source == "jiosaavn" || it.source == "mega") }
                 if (filtered.isNotEmpty()) {
                     val nextSong = filtered.random()
                     android.os.Handler(android.os.Looper.getMainLooper()).post {

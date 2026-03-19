@@ -52,6 +52,12 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE genre = :genre ORDER BY localPlayCount DESC LIMIT 20")
     fun getSongsByGenre(genre: String): LiveData<List<Song>>
 
+    @Query("SELECT genre FROM songs GROUP BY genre ORDER BY SUM(localPlayCount) DESC LIMIT :limit")
+    suspend fun getTopGenres(limit: Int): List<String>
+
+    @Query("SELECT artist FROM songs GROUP BY artist ORDER BY SUM(localPlayCount) DESC LIMIT :limit")
+    suspend fun getTopArtists(limit: Int): List<String>
+
     @Query("UPDATE songs SET localPlayCount = localPlayCount + 1 WHERE id = :songId")
     suspend fun incrementPlayCount(songId: String)
 }

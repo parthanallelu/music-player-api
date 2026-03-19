@@ -29,4 +29,11 @@ interface MusicApiService {
     suspend fun getSongDetails(
         @Path("id") songId: String
     ): Response<Song>
+
+    // Node proxy recommendations endpoint
+    @GET("recommendations")
+    suspend fun getRecommendations(
+        @Query("genres") genres: String,
+        @Query("artists") artists: String
+    ): Response<SongResponse>
 }

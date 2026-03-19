@@ -26,7 +26,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     fun playSong(song: Song, songs: List<Song>, index: Int) {
         PlayerManager.playSong(getApplication(), song, songs, index)
         viewModelScope.launch {
-            repository.addToRecentlyPlayed(song.id)
+            repository.addToRecentlyPlayed(song)
         }
     }
 }

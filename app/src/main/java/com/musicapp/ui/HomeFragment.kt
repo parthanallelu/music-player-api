@@ -26,6 +26,7 @@ class HomeFragment : Fragment() {
     private lateinit var technoAdapter: SongCardAdapter
     private lateinit var recentAdapter: SongCardAdapter
     private lateinit var recommendedAdapter: SongCardAdapter
+    private lateinit var becauseAdapter: SongCardAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
@@ -98,6 +99,12 @@ class HomeFragment : Fragment() {
         }
         binding.rvRecommended.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.rvRecommended.adapter = recommendedAdapter
+
+        becauseAdapter = SongCardAdapter { song, index -> 
+            onSongClick(song, homeViewModel.becauseYouListenedSongs.value ?: emptyList(), index) 
+        }
+        binding.rvBecause.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.rvBecause.adapter = becauseAdapter
     }
 
     private fun observeData() {
@@ -137,6 +144,20 @@ class HomeFragment : Fragment() {
             } else {
                 binding.tvRecommendedLabel.visibility = View.GONE
                 binding.rvRecommended.visibility = View.GONE
+            }
+            checkRefreshState()
+        }
+
+        homeViewModel.becauseYouListenedSongs.observe(viewLifecycleOwner) { songs ->
+            if (songs.isNotEmpty()) {
+                val genre = homeViewModel.becauseYouListenedGenre.value ?: ""
+                binding.tvBecauseLabel.text = "Because you listened to $genre"
+                binding.tvBecauseLabel.visibility = View.VISIBLE
+                binding.rvBecause.visibility = View.VISIBLE
+                becauseAdapter.submitList(songs)
+            } else {
+                binding.tvBecauseLabel.visibility = View.GONE
+                binding.rvBecause.visibility = View.GONE
             }
             checkRefreshState()
         }

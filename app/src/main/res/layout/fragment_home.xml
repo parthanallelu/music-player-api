@@ -82,6 +82,32 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/tvRecommendedLabel" />
 
+            <!-- Because you listened to... -->
+            <TextView
+                android:id="@+id/tvBecauseLabel"
+                style="@style/TitleText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:text="Because you listened to..."
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/rvRecommended" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvBecause"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:clipToPadding="false"
+                android:paddingHorizontal="@dimen/spacing_md"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/tvBecauseLabel" />
+
             <!-- Trending -->
             <TextView
                 android:id="@+id/tvTrendingLabel"
@@ -93,7 +119,7 @@
                 android:text="@string/trending_now"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/rvRecommended" />
+                app:layout_constraintTop_toBottomOf="@+id/rvBecause" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvTrending"

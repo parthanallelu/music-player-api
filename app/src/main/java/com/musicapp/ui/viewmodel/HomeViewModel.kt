@@ -18,6 +18,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val _recommendedSongs = MutableLiveData<List<Song>>()
     val recommendedSongs: LiveData<List<Song>> get() = _recommendedSongs
 
+    private val _becauseYouListenedSongs = MutableLiveData<List<Song>>()
+    val becauseYouListenedSongs: LiveData<List<Song>> get() = _becauseYouListenedSongs
+    
+    private val _becauseYouListenedGenre = MutableLiveData<String>()
+    val becauseYouListenedGenre: LiveData<String> get() = _becauseYouListenedGenre
+
     private val _trendingSongs = MutableLiveData<List<Song>>()
     val trendingSongs: LiveData<List<Song>> get() = _trendingSongs
 
@@ -46,15 +52,29 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _error.value = null
 
             try {
-                // Fetch categories
-                val favoriteGenre = repository.getFavoriteGenre() ?: "hindi"
-                val recommendedRes = repository.fetchSongs(favoriteGenre)
+                // Fetch preferences
+                val topGenres = repository.getTopGenres(3)
+                val topArtists = repository.getTopArtists(3)
+                
+                // Fetch AI Recommendations
+                val genresStr = topGenres.joinToString(",")
+                val artistsStr = topArtists.joinToString(",")
+                
+                val recommendedRes = repository.getRecommendations(genresStr, artistsStr)
+                
+                // "Because you listened to..." based on top genre
+                val favGenre = topGenres.firstOrNull() ?: "hindi"
+                _becauseYouListenedGenre.value = favGenre
+                val becauseYouListenedRes = repository.fetchSongs(favGenre)
+
+                // Standard categories
                 val trendingRes = repository.fetchSongs("top hits")
                 val hindiRes = repository.fetchSongs("hindi 2024")
                 val englishRes = repository.fetchSongs("english hits")
                 val technoRes = repository.fetchSongs("techno mix")
 
                 recommendedRes.onSuccess { _recommendedSongs.value = it }
+                becauseYouListenedRes.onSuccess { _becauseYouListenedSongs.value = it }
                 trendingRes.onSuccess { _trendingSongs.value = it }
                 hindiRes.onSuccess { _hindiSongs.value = it }
                 englishRes.onSuccess { _englishSongs.value = it }

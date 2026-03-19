@@ -131,18 +131,45 @@ class MusicRepository(context: Context) {
         return recentlyPlayedDao.getRecentlyPlayedSongs()
     }
 
-    suspend fun addToRecentlyPlayed(songId: String) {
+    suspend fun addToRecentlyPlayed(song: Song) {
+        // Ensure the song is in the local database
+        songDao.insertSongs(listOf(song))
+
+        // Add to recently played
         recentlyPlayedDao.insertRecentlyPlayed(
-            RecentlyPlayed(songId = songId, playedAt = System.currentTimeMillis())
+            RecentlyPlayed(songId = song.id, playedAt = System.currentTimeMillis())
         )
+
+        // Increment play count
         try {
-            songDao.incrementPlayCount(songId)
+            songDao.incrementPlayCount(song.id)
         } catch (e: Exception) {
             // Ignore if song doesn't exist locally
         }
     }
 
-    suspend fun getFavoriteGenre(): String? = songDao.getFavoriteGenre()
+    suspend fun getTopGenres(limit: Int = 3): List<String> = songDao.getTopGenres(limit)
     
+    suspend fun getTopArtists(limit: Int = 3): List<String> = songDao.getTopArtists(limit)
+
+    suspend fun getRecommendations(genres: String, artists: String): Result<List<Song>> {
+        return try {
+            if (NetworkUtils.isNetworkAvailable(appContext)) {
+                val response = apiService.getRecommendations(genres = genres, artists = artists)
+                if (response.isSuccessful) {
+                    val songs = response.body()?.songs ?: emptyList()
+                    songDao.insertSongs(songs)
+                    Result.success(songs)
+                } else {
+                    Result.failure(Exception("Failed to fetch recommendations"))
+                }
+            } else {
+                Result.failure(Exception("No network available"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     fun getMostPlayedSongs(): LiveData<List<Song>> = songDao.getMostPlayedSongs()
 }

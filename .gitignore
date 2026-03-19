@@ -41,3 +41,8 @@ google-services.json
 # Node modules
 node_modules/
 package-lock.json
+
+# Server secrets and cache
+server/.env
+server/cache/
+server/package-lock.json
