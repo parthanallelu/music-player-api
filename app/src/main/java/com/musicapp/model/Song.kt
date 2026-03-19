@@ -20,5 +20,7 @@ data class Song(
     val isDownloaded: Boolean = false,
     val source: String = "jiosaavn",
     val genre: String = "unknown",
+    val year: Int = 0,
+    val artistImage: String = "",
     val localPlayCount: Int = 0
 )

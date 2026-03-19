@@ -65,6 +65,23 @@ class PlayerActivity : AppCompatActivity() {
             song?.let {
                 binding.tvSongTitle.text = it.title
                 binding.tvArtist.text = it.artist
+                
+                // Enriched info: Album • Year • Genre
+                val info = StringBuilder()
+                if (it.album.isNotEmpty() && it.album != "Unknown Album") {
+                    info.append(it.album)
+                }
+                if (it.year > 0) {
+                    if (info.isNotEmpty()) info.append(" • ")
+                    info.append(it.year)
+                }
+                if (it.genre != "unknown" && it.genre.isNotEmpty()) {
+                    if (info.isNotEmpty()) info.append(" • ")
+                    info.append(it.genre)
+                }
+                binding.tvEnrichedInfo.text = info.toString()
+
+                // Album Art
                 if (it.albumArtUrl.isNotEmpty()) {
                     binding.ivAlbumArt.load(it.albumArtUrl) {
                         crossfade(true)
@@ -72,6 +89,17 @@ class PlayerActivity : AppCompatActivity() {
                         error(R.drawable.bg_album_art_placeholder)
                         transformations(RoundedCornersTransformation(24f))
                     }
+                }
+
+                // Artist Image
+                if (it.artistImage.isNotEmpty()) {
+                    binding.ivArtist.load(it.artistImage) {
+                        crossfade(true)
+                        placeholder(R.drawable.bg_album_art_placeholder)
+                        error(R.drawable.bg_album_art_placeholder)
+                    }
+                } else {
+                    binding.ivArtist.setImageResource(R.drawable.bg_album_art_placeholder)
                 }
             }
         }

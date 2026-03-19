@@ -67,37 +67,71 @@
             android:src="@drawable/bg_album_art_placeholder" />
     </androidx.cardview.widget.CardView>
 
-    <!-- Song Info -->
-    <TextView
-        android:id="@+id/tvSongTitle"
+    <!-- Artist & Song Info -->
+    <LinearLayout
+        android:id="@+id/infoContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/spacing_xl"
         android:layout_marginTop="@dimen/spacing_lg"
-        android:ellipsize="end"
-        android:fontFamily="sans-serif-medium"
-        android:maxLines="1"
-        android:textColor="@color/text_primary"
-        android:textSize="@dimen/text_player_title"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/cardAlbumArt" />
+        app:layout_constraintTop_toBottomOf="@+id/cardAlbumArt">
 
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivArtist"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:scaleType="centerCrop"
+            android:src="@drawable/bg_album_art_placeholder"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvSongTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/text_player_title" />
+
+            <TextView
+                android:id="@+id/tvArtist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_body" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Enriched Metadata -->
     <TextView
-        android:id="@+id/tvArtist"
+        android:id="@+id/tvEnrichedInfo"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/spacing_xl"
         android:layout_marginTop="@dimen/spacing_xs"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="@color/text_secondary"
-        android:textSize="@dimen/text_body"
+        android:textColor="@color/text_tertiary"
+        android:textSize="@dimen/text_caption"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvSongTitle" />
+        app:layout_constraintTop_toBottomOf="@+id/infoContainer" />
 
-    <!-- Seek Bar -->
     <SeekBar
         android:id="@+id/seekBar"
         android:layout_width="0dp"
@@ -109,7 +143,7 @@
         android:progressBackgroundTint="@color/seekbar_track"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvArtist" />
+        app:layout_constraintTop_toBottomOf="@+id/tvEnrichedInfo" />
 
     <TextView
         android:id="@+id/tvCurrentTime"

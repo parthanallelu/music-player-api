@@ -38,7 +38,19 @@ class SongAdapter(
 
         fun bind(song: Song, position: Int) {
             title.text = song.title
-            artist.text = song.artist
+            
+            val info = StringBuilder(song.artist)
+            if (song.album.isNotEmpty() && song.album != "Unknown Album") {
+                info.append(" • ").append(song.album)
+            }
+            if (song.year > 0) {
+                info.append(" • ").append(song.year)
+            }
+            if (song.genre != "unknown" && song.genre.isNotEmpty()) {
+                info.append(" • ").append(song.genre)
+            }
+            artist.text = info.toString()
+            
             duration.text = TimeUtils.formatDuration(song.duration)
 
             if (song.albumArtUrl.isNotEmpty()) {

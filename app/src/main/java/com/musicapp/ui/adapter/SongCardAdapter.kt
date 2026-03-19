@@ -33,7 +33,18 @@ class SongCardAdapter(
 
         fun bind(song: Song, position: Int) {
             tvTitle.text = song.title
-            tvSubtitle.text = song.artist
+            
+            val info = StringBuilder(song.artist)
+            if (song.album.isNotEmpty() && song.album != "Unknown Album") {
+                info.append(" • ").append(song.album)
+            }
+            if (song.year > 0) {
+                info.append(" • ").append(song.year)
+            }
+            if (song.genre != "unknown" && song.genre.isNotEmpty()) {
+                info.append(" • ").append(song.genre)
+            }
+            tvSubtitle.text = info.toString()
             
             if (song.albumArtUrl.isNotEmpty()) {
                 ivCover.load(song.albumArtUrl) {
