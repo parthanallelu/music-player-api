@@ -42,7 +42,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
         
         searchJob = viewModelScope.launch {
-            delay(300) // Debounce
+            delay(150) // Reduced debounce for better real-time feel
             _isLoading.value = true
             currentPage = 1
             isLastPage = false

@@ -237,15 +237,22 @@ app.get("/v1/search", async (req, res) => {
 
     // Search MEGA songs
     const lowQuery = query.toLowerCase();
-    const megaSongs = megaManager.getSongs()
-      .filter(s => 
+    const allMegaSongs = megaManager.getSongs();
+    
+    // Prioritize "starts with" then "includes"
+    const megaSongsOrdered = [
+      ...allMegaSongs.filter(s => s.title.toLowerCase().startsWith(lowQuery)),
+      ...allMegaSongs.filter(s => !s.title.toLowerCase().startsWith(lowQuery) && (
         s.title.toLowerCase().includes(lowQuery) || 
-        s.artist.toLowerCase().includes(lowQuery) ||
-        (s.album && s.album.toLowerCase().includes(lowQuery))
-      )
-      .map(s => ({ ...s, source: "mega" }));
+        s.artist.toLowerCase().includes(lowQuery)
+      ))
+    ].map(s => ({ ...s, source: "mega" }));
 
-    res.json({ songs: [...megaSongs, ...jioSaavnSongs] });
+    // Remove duplicates from sorting
+    const uniqueMegaSongs = Array.from(new Set(megaSongsOrdered.map(s => s.id)))
+      .map(id => megaSongsOrdered.find(s => s.id === id));
+
+    res.json({ songs: [...uniqueMegaSongs, ...jioSaavnSongs] });
   } catch (error) {
     console.error("Search error:", error.message);
     res.status(500).json({ error: "Search failed", songs: [] });
