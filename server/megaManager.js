@@ -51,8 +51,12 @@ class MegaManager {
 
     async saveCache() {
         try {
-            // Save metadata but strip the 'node' object (too large/cyclic)
-            const songsToCache = this.songs.map(({ node, ...rest }) => rest);
+            // CRITICAL: Ensure 'handle' is kept in the cache!
+            const songsToCache = this.songs.map(({ node, ...rest }) => ({
+                ...rest,
+                id: rest.id,
+                handle: rest.handle || rest.id?.replace('mega_', '')
+            }));
             await fs.writeJson(CACHE_FILE, songsToCache, { spaces: 2 });
             console.log('MEGA metadata cache saved.');
         } catch (err) {
@@ -138,7 +142,7 @@ class MegaManager {
      * The caller is responsible for prepending the base URL.
      */
     getSongs() {
-        return this.songs.map(({ node, handle, ...rest }) => ({
+        return this.songs.map(({ node, ...rest }) => ({
             ...rest,
             albumArtUrl: `/v1/mega-cover/${rest.id}`,
             streamUrl: `/v1/mega-stream/${rest.id}`,

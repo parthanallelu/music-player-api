@@ -36,7 +36,7 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "MusicPlayer API",
-    version: "2.1.2",
+    version: "2.1.3",
     endpoints: [
       "GET /v1/songs",
       "GET /v1/songs?q=query",
