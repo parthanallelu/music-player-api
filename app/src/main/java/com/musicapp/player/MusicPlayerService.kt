@@ -4,9 +4,12 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Binder
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -29,17 +32,42 @@ class MusicPlayerService : LifecycleService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var repository: MusicRepository
 
+    // Position updater — stored for cleanup
+    private val handler = Handler(Looper.getMainLooper())
+    private val positionUpdater = object : Runnable {
+        override fun run() {
+            exoPlayer?.let { player ->
+                if (player.isPlaying) {
+                    _currentPosition.postValue(player.currentPosition)
+                }
+            }
+            handler.postDelayed(this, 500)
+        }
+    }
+
     inner class MusicBinder : Binder() {
         fun getService(): MusicPlayerService = this@MusicPlayerService
     }
 
     companion object {
-        val isPlaying = MutableLiveData(false)
-        val currentSong = MutableLiveData<Song?>(null)
-        val currentPosition = MutableLiveData(0L)
-        val duration = MutableLiveData(0L)
-        val playlist = MutableLiveData<List<Song>>(emptyList())
-        val currentIndex = MutableLiveData(0)
+        // Encapsulated state — only LiveData is publicly exposed
+        private val _isPlaying = MutableLiveData(false)
+        val isPlaying: LiveData<Boolean> get() = _isPlaying
+
+        private val _currentSong = MutableLiveData<Song?>(null)
+        val currentSong: LiveData<Song?> get() = _currentSong
+
+        private val _currentPosition = MutableLiveData(0L)
+        val currentPosition: LiveData<Long> get() = _currentPosition
+
+        private val _duration = MutableLiveData(0L)
+        val duration: LiveData<Long> get() = _duration
+
+        private val _playlist = MutableLiveData<List<Song>>(emptyList())
+        val playlist: LiveData<List<Song>> get() = _playlist
+
+        private val _currentIndex = MutableLiveData(0)
+        val currentIndex: LiveData<Int> get() = _currentIndex
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -57,18 +85,16 @@ class MusicPlayerService : LifecycleService() {
         exoPlayer = ExoPlayer.Builder(this).build().apply {
             addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(playing: Boolean) {
-                    MusicPlayerService.isPlaying.postValue(playing)
-                    if (playing) {
-                        updateNotification()
-                    }
+                    _isPlaying.postValue(playing)
+                    if (playing) updateNotification()
                 }
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     val index = exoPlayer?.currentMediaItemIndex ?: 0
-                    MusicPlayerService.currentIndex.postValue(index)
-                    val songs = MusicPlayerService.playlist.value ?: return
+                    _currentIndex.postValue(index)
+                    val songs = _playlist.value ?: return
                     if (index in songs.indices) {
-                        MusicPlayerService.currentSong.postValue(songs[index])
+                        _currentSong.postValue(songs[index])
                         updateNotification()
                     }
                 }
@@ -76,15 +102,13 @@ class MusicPlayerService : LifecycleService() {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     when (playbackState) {
                         Player.STATE_READY -> {
-                            MusicPlayerService.duration.postValue(exoPlayer?.duration ?: 0L)
+                            _duration.postValue(exoPlayer?.duration ?: 0L)
                         }
                         Player.STATE_ENDED -> {
-                            MusicPlayerService.isPlaying.postValue(false)
-                            val current = MusicPlayerService.currentSong.value
+                            _isPlaying.postValue(false)
+                            val current = _currentSong.value
                             if (current != null && exoPlayer?.hasNextMediaItem() == false) {
-                                serviceScope.launch {
-                                    handleAutoRadio(current)
-                                }
+                                serviceScope.launch { handleAutoRadio(current) }
                             }
                         }
                         else -> {}
@@ -93,70 +117,46 @@ class MusicPlayerService : LifecycleService() {
             })
         }
 
-        // Position update using Handler on main thread (ExoPlayer requires main thread access)
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        val positionUpdater = object : Runnable {
-            override fun run() {
-                exoPlayer?.let { player ->
-                    if (player.isPlaying) {
-                        MusicPlayerService.currentPosition.postValue(player.currentPosition)
-                    }
-                }
-                handler.postDelayed(this, 500)
-            }
-        }
         handler.postDelayed(positionUpdater, 500)
     }
 
+    // ─── Auto-Radio ──────────────────────────────────────
+
     private suspend fun handleAutoRadio(currentSong: Song) {
         try {
-            if (currentSong.genre != "unknown" && currentSong.genre.isNotEmpty()) {
-                val genreRes = repository.fetchSongs(currentSong.genre)
-                genreRes.onSuccess { songs ->
-                    val filtered = songs.filter { it.id != currentSong.id && (it.source == "jiosaavn" || it.source == "mega") }
-                    if (filtered.isNotEmpty()) {
-                        val nextSong = filtered.random()
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            playSong(nextSong, listOf(nextSong), 0)
-                        }
-                        return
-                    }
-                }
+            // Try by genre → artist → trending (in priority order)
+            if (currentSong.genre.isNotEmpty() && currentSong.genre != "unknown") {
+                if (tryAutoRadioFrom(currentSong.genre, currentSong.id)) return
             }
-            
-            if (currentSong.artist != "Unknown Artist" && currentSong.artist.isNotEmpty()) {
-                val artistRes = repository.searchSongs(currentSong.artist)
-                artistRes.onSuccess { songs ->
-                    val filtered = songs.filter { it.id != currentSong.id && (it.source == "jiosaavn" || it.source == "mega") }
-                    if (filtered.isNotEmpty()) {
-                        val nextSong = filtered.random()
-                        android.os.Handler(android.os.Looper.getMainLooper()).post {
-                            playSong(nextSong, listOf(nextSong), 0)
-                        }
-                        return
-                    }
-                }
+            if (currentSong.artist.isNotEmpty() && currentSong.artist != "Unknown Artist") {
+                if (tryAutoRadioFrom(currentSong.artist, currentSong.id)) return
             }
-
-            val trendingRes = repository.fetchSongs("top hits")
-            trendingRes.onSuccess { songs ->
-                val filtered = songs.filter { it.id != currentSong.id && (it.source == "jiosaavn" || it.source == "mega") }
-                if (filtered.isNotEmpty()) {
-                    val nextSong = filtered.random()
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        playSong(nextSong, listOf(nextSong), 0)
-                    }
-                }
-            }
+            tryAutoRadioFrom("top hits", currentSong.id)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    /** Fetch songs for a query and auto-play a random match. Returns true if successful. */
+    private suspend fun tryAutoRadioFrom(query: String, excludeId: String): Boolean {
+        val result = repository.fetchSongs(query)
+        result.onSuccess { songs ->
+            val candidates = songs.filter { it.id != excludeId && it.source in listOf("jiosaavn", "mega") }
+            if (candidates.isNotEmpty()) {
+                val next = candidates.random()
+                handler.post { playSong(next, listOf(next), 0) }
+                return true
+            }
+        }
+        return false
+    }
+
+    // ─── Playback Controls ───────────────────────────────
+
     fun playSong(song: Song, songs: List<Song> = listOf(song), startIndex: Int = 0) {
-        MusicPlayerService.playlist.postValue(songs)
-        MusicPlayerService.currentSong.postValue(song)
-        MusicPlayerService.currentIndex.postValue(startIndex)
+        _playlist.postValue(songs)
+        _currentSong.postValue(song)
+        _currentIndex.postValue(startIndex)
 
         exoPlayer?.let { player ->
             player.clearMediaItems()
@@ -181,51 +181,35 @@ class MusicPlayerService : LifecycleService() {
         startForeground(Constants.PLAYER_NOTIFICATION_ID, createNotification())
     }
 
-    fun play() {
-        exoPlayer?.play()
-    }
-
-    fun pause() {
-        exoPlayer?.pause()
-    }
+    fun play() { exoPlayer?.play() }
+    fun pause() { exoPlayer?.pause() }
 
     fun playPause() {
-        exoPlayer?.let { player ->
-            if (player.isPlaying) player.pause() else player.play()
-        }
+        exoPlayer?.let { if (it.isPlaying) it.pause() else it.play() }
     }
 
     fun next() {
-        exoPlayer?.let { player ->
-            if (player.hasNextMediaItem()) {
-                player.seekToNextMediaItem()
-            }
-        }
+        exoPlayer?.let { if (it.hasNextMediaItem()) it.seekToNextMediaItem() }
     }
 
     fun previous() {
         exoPlayer?.let { player ->
-            if (player.currentPosition > 3000) {
-                player.seekTo(0)
-            } else if (player.hasPreviousMediaItem()) {
-                player.seekToPreviousMediaItem()
-            }
+            if (player.currentPosition > 3000) player.seekTo(0)
+            else if (player.hasPreviousMediaItem()) player.seekToPreviousMediaItem()
         }
     }
 
-    fun seekTo(position: Long) {
-        exoPlayer?.seekTo(position)
-    }
-
+    fun seekTo(position: Long) { exoPlayer?.seekTo(position) }
     fun getPlayer(): ExoPlayer? = exoPlayer
 
+    // ─── Notifications ───────────────────────────────────
+
     private fun createNotification(): Notification {
-        val song = MusicPlayerService.currentSong.value
+        val song = _currentSong.value
         val isCurrentlyPlaying = exoPlayer?.isPlaying == true
 
         val contentIntent = PendingIntent.getActivity(
-            this,
-            0,
+            this, 0,
             Intent(this, PlayerActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -240,47 +224,38 @@ class MusicPlayerService : LifecycleService() {
                 androidx.media.app.NotificationCompat.MediaStyle()
                     .setShowActionsInCompactView(0, 1, 2)
             )
-            .addAction(
-                R.drawable.ic_skip_previous,
-                "Previous",
-                createActionPendingIntent("PREVIOUS")
-            )
+            .addAction(R.drawable.ic_skip_previous, "Previous", createActionPendingIntent("PREVIOUS"))
             .addAction(
                 if (isCurrentlyPlaying) R.drawable.ic_pause else R.drawable.ic_play,
                 if (isCurrentlyPlaying) "Pause" else "Play",
                 createActionPendingIntent("PLAY_PAUSE")
             )
-            .addAction(
-                R.drawable.ic_skip_next,
-                "Next",
-                createActionPendingIntent("NEXT")
-            )
+            .addAction(R.drawable.ic_skip_next, "Next", createActionPendingIntent("NEXT"))
             .build()
     }
 
     private fun updateNotification() {
         try {
-            val notification = createNotification()
             val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-            manager.notify(Constants.PLAYER_NOTIFICATION_ID, notification)
-        } catch (_: Exception) { }
+            manager.notify(Constants.PLAYER_NOTIFICATION_ID, createNotification())
+        } catch (e: Exception) {
+            // Notification update is non-critical; log and continue
+            android.util.Log.w("MusicPlayerService", "Notification update failed", e)
+        }
     }
 
     private fun createActionPendingIntent(action: String): PendingIntent {
-        val intent = Intent(this, MusicPlayerService::class.java).apply {
-            this.action = action
-        }
+        val intent = Intent(this, MusicPlayerService::class.java).apply { this.action = action }
         return PendingIntent.getService(
             this, action.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
 
+    // ─── Lifecycle ───────────────────────────────────────
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-
-        // Must call startForeground immediately when started as foreground service
-        // Otherwise Android 12+ will crash with ForegroundServiceStartNotAllowed
         startForeground(Constants.PLAYER_NOTIFICATION_ID, createNotification())
 
         when (intent?.action) {
@@ -297,6 +272,7 @@ class MusicPlayerService : LifecycleService() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(positionUpdater) // Fix handler leak
         exoPlayer?.release()
         exoPlayer = null
         super.onDestroy()

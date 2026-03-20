@@ -48,8 +48,8 @@ object PlayerManager {
     }
 
     fun playSong(context: Context, song: Song, songs: List<Song> = listOf(song), startIndex: Int = 0) {
-        if (song.source == "youtube" && song.perma_url.isNotEmpty()) {
-            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(song.perma_url))
+        if (song.source == "youtube" && song.permaUrl.isNotEmpty()) {
+            val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(song.permaUrl))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
             return

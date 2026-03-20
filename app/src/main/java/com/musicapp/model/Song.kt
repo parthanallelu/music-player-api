@@ -1,10 +1,19 @@
 package com.musicapp.model
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.google.gson.annotations.SerializedName
 
-@Entity(tableName = "songs")
+@Entity(
+    tableName = "songs",
+    indices = [
+        Index("genre"),
+        Index("artist"),
+        Index("isDownloaded"),
+        Index("source")
+    ]
+)
 data class Song(
     @PrimaryKey
     val id: String,
@@ -12,9 +21,11 @@ data class Song(
     val album: String = "",
     val artist: String = "",
     val albumArtUrl: String = "",
-    val perma_url: String = "",
+    @SerializedName("perma_url")
+    val permaUrl: String = "",
     val streamUrl: String = "",
-    val play_count: String = "0",
+    @SerializedName("play_count")
+    val playCount: String = "0",
     val duration: Long = 0L,
     val localFilePath: String? = null,
     val isDownloaded: Boolean = false,

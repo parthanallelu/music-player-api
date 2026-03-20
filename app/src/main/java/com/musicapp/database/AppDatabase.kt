@@ -11,7 +11,7 @@ import com.musicapp.model.Song
 
 @Database(
     entities = [Song::class, Playlist::class, PlaylistSong::class, RecentlyPlayed::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

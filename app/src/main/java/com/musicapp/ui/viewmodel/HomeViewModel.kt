@@ -7,6 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.musicapp.model.Song
 import com.musicapp.repository.MusicRepository
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -52,33 +53,30 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _error.value = null
 
             try {
-                // Fetch preferences
+                // Fetch user preferences first (local DB, fast)
                 val topGenres = repository.getTopGenres(3)
                 val topArtists = repository.getTopArtists(3)
-                
-                // Fetch AI Recommendations
+
                 val genresStr = topGenres.joinToString(",")
                 val artistsStr = topArtists.joinToString(",")
-                
-                val recommendedRes = repository.getRecommendations(genresStr, artistsStr)
-                
-                // "Because you listened to..." based on top genre
                 val favGenre = topGenres.firstOrNull() ?: "hindi"
                 _becauseYouListenedGenre.value = favGenre
-                val becauseYouListenedRes = repository.fetchSongs(favGenre)
 
-                // Standard categories
-                val trendingRes = repository.fetchSongs("top hits")
-                val hindiRes = repository.fetchSongs("hindi 2024")
-                val englishRes = repository.fetchSongs("english hits")
-                val technoRes = repository.fetchSongs("techno mix")
+                // Fire all network calls in parallel
+                val recommendedDeferred = async { repository.getRecommendations(genresStr, artistsStr) }
+                val becauseDeferred = async { repository.fetchSongs(favGenre) }
+                val trendingDeferred = async { repository.fetchSongs("top hits") }
+                val hindiDeferred = async { repository.fetchSongs("hindi 2024") }
+                val englishDeferred = async { repository.fetchSongs("english hits") }
+                val technoDeferred = async { repository.fetchSongs("techno mix") }
 
-                recommendedRes.onSuccess { _recommendedSongs.value = it }
-                becauseYouListenedRes.onSuccess { _becauseYouListenedSongs.value = it }
-                trendingRes.onSuccess { _trendingSongs.value = it }
-                hindiRes.onSuccess { _hindiSongs.value = it }
-                englishRes.onSuccess { _englishSongs.value = it }
-                technoRes.onSuccess { _technoSongs.value = it }
+                // Await results
+                recommendedDeferred.await().onSuccess { _recommendedSongs.value = it }
+                becauseDeferred.await().onSuccess { _becauseYouListenedSongs.value = it }
+                trendingDeferred.await().onSuccess { _trendingSongs.value = it }
+                hindiDeferred.await().onSuccess { _hindiSongs.value = it }
+                englishDeferred.await().onSuccess { _englishSongs.value = it }
+                technoDeferred.await().onSuccess { _technoSongs.value = it }
 
             } catch (exception: Exception) {
                 _error.value = exception.message ?: "Failed to load songs"
