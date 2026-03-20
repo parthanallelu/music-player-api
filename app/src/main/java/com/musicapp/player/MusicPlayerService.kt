@@ -15,6 +15,12 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import coil.ImageLoader
+import coil.request.ImageRequest
+import android.net.Uri
 import com.musicapp.R
 import com.musicapp.model.Song
 import com.musicapp.repository.MusicRepository
@@ -32,6 +38,9 @@ class MusicPlayerService : LifecycleService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var repository: MusicRepository
     private var isManualSongChange = false
+    private var mediaSession: MediaSession? = null
+    private var currentBitmap: Bitmap? = null
+    private lateinit var imageLoader: ImageLoader
 
     // Position updater — stored for cleanup
     private val handler = Handler(Looper.getMainLooper())
@@ -79,6 +88,7 @@ class MusicPlayerService : LifecycleService() {
     override fun onCreate() {
         super.onCreate()
         repository = MusicRepository(applicationContext)
+        imageLoader = ImageLoader(this)
         initializePlayer()
     }
 
@@ -90,10 +100,15 @@ class MusicPlayerService : LifecycleService() {
             .setReadTimeoutMs(15000)
 
         val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(this, httpDataSourceFactory)
-
-        exoPlayer = ExoPlayer.Builder(this)
+        
+        val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory))
-            .build().apply {
+            .build()
+            
+        exoPlayer = player
+        mediaSession = MediaSession.Builder(this, player).build()
+
+        player.apply {
             addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(playing: Boolean) {
                     _isPlaying.postValue(playing)
@@ -196,6 +211,8 @@ class MusicPlayerService : LifecycleService() {
                         MediaMetadata.Builder()
                             .setTitle(s.title)
                             .setArtist(s.artist)
+                            .setAlbumTitle(s.album)
+                            .setArtworkUri(Uri.parse(s.absoluteAlbumArtUrl))
                             .build()
                     )
                     .build()
@@ -238,7 +255,9 @@ class MusicPlayerService : LifecycleService() {
 
         val contentIntent = PendingIntent.getActivity(
             this, 0,
-            Intent(this, PlayerActivity::class.java),
+            Intent(this, PlayerActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -248,8 +267,11 @@ class MusicPlayerService : LifecycleService() {
             .setSmallIcon(R.drawable.ic_music_note)
             .setContentIntent(contentIntent)
             .setOngoing(isCurrentlyPlaying)
+            .setLargeIcon(currentBitmap)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
+                    .setMediaSession(mediaSession?.sessionCompatToken)
                     .setShowActionsInCompactView(0, 1, 2)
             )
             .addAction(R.drawable.ic_skip_previous, "Previous", createActionPendingIntent("PREVIOUS"))
@@ -263,11 +285,32 @@ class MusicPlayerService : LifecycleService() {
     }
 
     private fun updateNotification() {
+        val song = _currentSong.value
+        if (song != null && !song.albumArtUrl.isNullOrEmpty()) {
+            serviceScope.launch {
+                val request = ImageRequest.Builder(this@MusicPlayerService)
+                    .data(song.absoluteAlbumArtUrl)
+                    .build()
+                val result = imageLoader.execute(request)
+                val bitmap = (result.drawable as? BitmapDrawable)?.bitmap
+                if (bitmap != currentBitmap) {
+                    currentBitmap = bitmap
+                    handler.post { performNotificationUpdate() }
+                } else {
+                    handler.post { performNotificationUpdate() }
+                }
+            }
+        } else {
+            currentBitmap = null
+            performNotificationUpdate()
+        }
+    }
+
+    private fun performNotificationUpdate() {
         try {
             val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
             manager.notify(Constants.PLAYER_NOTIFICATION_ID, createNotification())
         } catch (e: Exception) {
-            // Notification update is non-critical; log and continue
             android.util.Log.w("MusicPlayerService", "Notification update failed", e)
         }
     }
@@ -300,7 +343,9 @@ class MusicPlayerService : LifecycleService() {
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(positionUpdater) // Fix handler leak
+        handler.removeCallbacks(positionUpdater)
+        mediaSession?.release()
+        mediaSession = null
         exoPlayer?.release()
         exoPlayer = null
         super.onDestroy()
