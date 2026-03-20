@@ -11,7 +11,8 @@ class MegaManager {
         this.folderUrl = 'https://mega.nz/folder/A34yUK7B#bsc58SUGqm2fofpoHDkqyQ';
         this.songs = [];
         this.isInitialized = false;
-        this.indexing = false; // Added for tracking indexing status
+        this.indexing = false;
+        this.songs = []; // Ensure initialized as empty array // Added for tracking indexing status
     }
 
     async init() {
@@ -39,8 +40,9 @@ class MegaManager {
         try {
             if (await fs.pathExists(CACHE_FILE)) {
                 const cachedSongs = await fs.readJson(CACHE_FILE);
-                this.songs = cachedSongs;
-                console.log(`Loaded ${this.songs.length} MEGA songs from cache.`);
+                // Filter out any corrupt entries from previous bugs
+                this.songs = cachedSongs.filter(s => s.handle && s.handle !== 'undefined' && s.id !== 'mega_undefined');
+                console.log(`Loaded ${this.songs.length} valid MEGA songs from cache.`);
             }
         } catch (err) {
             console.warn('Failed to load MEGA cache:', err.message);
@@ -64,48 +66,59 @@ class MegaManager {
             const folder = mega.File.fromURL(this.folderUrl);
             await folder.loadAttributes();
             
-            const newSongs = [];
+            this.songs = this.songs || []; // Keep existing songs if any
+            const processedHandles = new Set();
+            
             const crawl = async (node) => {
                 if (node.children) {
                     for (const child of node.children) {
                         await crawl(child);
                     }
                 } else if (node.name?.toLowerCase().endsWith('.mp3')) {
-                    // Structure: Genre/Artist/Song.mp3 (original logic)
-                    // The new logic below extracts artist/title differently,
-                    // but the user's provided diff implies a simpler split.
-                    // I will use the user's provided logic for artist/title extraction.
+                    // Correctly extract mega handle
+                    const handle = node.handle || (node.downloadId && node.downloadId[1]);
+                    if (!handle) {
+                        console.warn(`No handle found for node: ${node.name}`);
+                        return;
+                    }
+
+                    if (processedHandles.has(handle)) return; // Avoid duplicates
+                    processedHandles.add(handle);
 
                     const titleFromName = node.name.replace(/\.mp3$/i, '');
                     const [artistPart, songTitlePart] = titleFromName.includes(' - ') ? titleFromName.split(' - ') : ['Unknown Artist', titleFromName];
                     
-                    // Check if we already have this in memory (from cache)
-                    const existing = this.songs.find(s => s.id === `mega_${node.handle}`);
+                    const songId = `mega_${handle}`;
+                    const existingIdx = this.songs.findIndex(s => s.id === songId);
+                    const existing = existingIdx !== -1 ? this.songs[existingIdx] : null;
                     
                     const song = {
-                        id: `mega_${node.handle}`,
+                        id: songId,
                         title: songTitlePart?.trim() || titleFromName.trim(),
                         artist: artistPart?.trim() || 'Unknown Artist',
-                        genre: existing?.genre || '', // Preserve from cache
-                        album: existing?.album || '', // Preserve from cache
-                        year: existing?.year || 0,    // Preserve from cache
-                        duration: existing?.duration || 0, // Preserve from cache
-                        artistImage: existing?.artistImage || '', // Preserve from cache
+                        genre: existing?.genre || '',
+                        album: existing?.album || '',
+                        year: existing?.year || 0,
+                        duration: existing?.duration || 0,
+                        artistImage: '',
                         source: 'mega',
-                        handle: node.handle,
-                        node, // Keep node for streaming, but it will be stripped before caching
+                        handle: handle,
+                        node,
                     };
 
                     const enriched = await metadataManager.enrichMetadata(song);
-                    newSongs.push(enriched);
-                    await new Promise(r => setTimeout(r, 200)); // API rate limit for enrichment
+                    if (existingIdx !== -1) {
+                        this.songs[existingIdx] = enriched;
+                    } else {
+                        this.songs.push(enriched);
+                    }
+                    await new Promise(r => setTimeout(r, 100)); // Minimal delay
                 }
             };
 
             await crawl(folder);
-            this.songs = newSongs;
-            await metadataManager.saveArtistCache(); // Save artist cache after full batch
-            console.log(`MEGA crawl and enrichment finished. ${this.songs.length} songs found.`);
+            await metadataManager.saveArtistCache();
+            console.log(`MEGA crawl and enrichment finished. ${this.songs.length} songs total.`);
         } catch (err) {
             console.error('MEGA _crawlAndEnrich Error:', err.message);
             throw err; // Re-throw to be caught by the .catch in init()
