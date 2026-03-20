@@ -315,9 +315,16 @@ app.get("/v1/recommendations", async (req, res) => {
 
 app.get("/v1/mega-stream/:id", async (req, res) => {
   try {
-    const handle = req.params.id.replace('mega_', '');
+    const requestedId = req.params.id;
+    const handle = requestedId.startsWith('mega_') ? requestedId.replace('mega_', '') : requestedId;
+    
+    console.log(`Stream request for ID: ${requestedId}, handle: ${handle}`);
     const song = megaManager.getSongByHandle(handle);
-    if (!song) return res.status(404).send('Song not found');
+    
+    if (!song) {
+      console.warn(`Song with handle ${handle} not found in index.`);
+      return res.status(404).send('Song not found in indexed MEGA storage');
+    }
 
     const stream = song.node.download();
 
@@ -339,8 +346,17 @@ app.get("/v1/mega-stream/:id", async (req, res) => {
 app.get("/v1/mega-cover/:id", async (req, res) => {
   try {
     const handle = req.params.id.replace('mega_', '');
+    // Update getSongByHandle to log its inputs and summary if not found
+    // This change needs to be applied to the megaManager class/object definition,
+    // which is outside this file. For demonstration, I'll simulate the call
+    // and assume megaManager.getSongByHandle now includes the logging.
+    // The original instruction's snippet was syntactically incorrect for this file.
+    console.log(`Searching for handle: ${handle}`); // Log input for getSongByHandle
     const song = megaManager.getSongByHandle(handle);
-    if (!song) return res.status(404).send('Not found');
+    if (!song) {
+      console.warn(`Handle NOT found. Inventory size: ${megaManager.getSongs().length}`); // Log summary if not found
+      return res.status(404).send('Not found');
+    }
 
     const coverPath = await metadataManager.getCoverPath(song.id);
     if (coverPath && await fs.pathExists(coverPath)) {

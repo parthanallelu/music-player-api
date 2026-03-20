@@ -74,7 +74,10 @@ class MegaManager {
     }
 
     getSongByHandle(handle) {
-        return this.songs.find(s => s.handle === handle) || null;
+        console.log(`Searching for handle: ${handle}`);
+        const song = this.songs.find(s => String(s.handle) === String(handle)) || null;
+        if (!song) console.warn(`Handle NOT found. Inventory size: ${this.songs.length}`);
+        return song;
     }
 }
 
