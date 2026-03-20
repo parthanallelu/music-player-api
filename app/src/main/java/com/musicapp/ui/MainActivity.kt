@@ -41,8 +41,8 @@ class MainActivity : AppCompatActivity() {
                 binding.miniPlayerContainer.visibility = View.VISIBLE
                 binding.miniTitle.text = song.title
                 binding.miniArtist.text = song.artist
-                if (song.albumArtUrl.isNotEmpty()) {
-                    binding.miniAlbumArt.load(song.albumArtUrl) {
+                if (song.absoluteAlbumArtUrl.isNotEmpty()) {
+                    binding.miniAlbumArt.load(song.absoluteAlbumArtUrl) {
                         crossfade(true)
                         placeholder(R.drawable.bg_album_art_placeholder)
                         error(R.drawable.bg_album_art_placeholder)

@@ -82,8 +82,8 @@ class PlayerActivity : AppCompatActivity() {
                 binding.tvEnrichedInfo.text = info.toString()
 
                 // Album Art
-                if (it.albumArtUrl.isNotEmpty()) {
-                    binding.ivAlbumArt.load(it.albumArtUrl) {
+                if (it.absoluteAlbumArtUrl.isNotEmpty()) {
+                    binding.ivAlbumArt.load(it.absoluteAlbumArtUrl) {
                         crossfade(true)
                         placeholder(R.drawable.bg_album_art_placeholder)
                         error(R.drawable.bg_album_art_placeholder)

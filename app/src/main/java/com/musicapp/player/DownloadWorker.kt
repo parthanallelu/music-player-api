@@ -122,7 +122,7 @@ class DownloadWorker(
             val inputData = workDataOf(
                 "song_id" to song.id,
                 "song_title" to song.title,
-                "download_url" to song.streamUrl
+                "download_url" to song.absoluteStreamUrl
             )
 
             val constraints = Constraints.Builder()

@@ -6,6 +6,7 @@ import com.musicapp.api.RetrofitClient
 import com.musicapp.database.AppDatabase
 import com.musicapp.model.*
 import com.musicapp.util.NetworkUtils
+import android.util.Log
 
 class MusicRepository(context: Context) {
 
@@ -24,6 +25,7 @@ class MusicRepository(context: Context) {
                 val response = apiService.getSongs(query = genre)
                 if (response.isSuccessful) {
                     val songs = response.body()?.songs ?: emptyList()
+                    Log.d("SONG_DEBUG", "fetchSongs ($genre): ${songs.size} songs received. MEGA songs: ${songs.count { it.source == "mega" }}")
                     songDao.insertSongs(songs)
                     Result.success(songs)
                 } else {
@@ -47,6 +49,7 @@ class MusicRepository(context: Context) {
                 val response = apiService.searchSongs(query = query, page = page)
                 if (response.isSuccessful) {
                     val songs = response.body()?.songs ?: emptyList()
+                    Log.d("SONG_DEBUG", "searchSongs ($query): ${songs.size} songs received. MEGA songs: ${songs.count { it.source == "mega" }}")
                     songDao.insertSongs(songs)
                     Result.success(songs)
                 } else {

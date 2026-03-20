@@ -53,8 +53,8 @@ class SongAdapter(
             
             duration.text = TimeUtils.formatDuration(song.duration)
 
-            if (song.albumArtUrl.isNotEmpty()) {
-                albumArt.load(song.albumArtUrl) {
+            if (song.absoluteAlbumArtUrl.isNotEmpty()) {
+                albumArt.load(song.absoluteAlbumArtUrl) {
                     crossfade(true)
                     placeholder(R.drawable.bg_album_art_placeholder)
                     error(R.drawable.bg_album_art_placeholder)

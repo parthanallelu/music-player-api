@@ -46,8 +46,8 @@ class SongCardAdapter(
             }
             tvSubtitle.text = info.toString()
             
-            if (song.albumArtUrl.isNotEmpty()) {
-                ivCover.load(song.albumArtUrl) {
+            if (song.absoluteAlbumArtUrl.isNotEmpty()) {
+                ivCover.load(song.absoluteAlbumArtUrl) {
                     crossfade(true)
                     placeholder(R.drawable.bg_album_art_placeholder)
                     error(R.drawable.bg_album_art_placeholder)

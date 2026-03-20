@@ -125,11 +125,11 @@ class MusicPlayerService : LifecycleService() {
     private suspend fun handleAutoRadio(currentSong: Song) {
         try {
             // Try by genre → artist → trending (in priority order)
-            if (currentSong.genre.isNotEmpty() && currentSong.genre != "unknown") {
-                if (tryAutoRadioFrom(currentSong.genre, currentSong.id)) return
+            if (!currentSong.genre.isNullOrEmpty() && currentSong.genre != "unknown") {
+                if (tryAutoRadioFrom(currentSong.genre!!, currentSong.id)) return
             }
-            if (currentSong.artist.isNotEmpty() && currentSong.artist != "Unknown Artist") {
-                if (tryAutoRadioFrom(currentSong.artist, currentSong.id)) return
+            if (!currentSong.artist.isNullOrEmpty() && currentSong.artist != "Unknown Artist") {
+                if (tryAutoRadioFrom(currentSong.artist!!, currentSong.id)) return
             }
             tryAutoRadioFrom("top hits", currentSong.id)
         } catch (e: Exception) {
@@ -161,7 +161,7 @@ class MusicPlayerService : LifecycleService() {
         exoPlayer?.let { player ->
             player.clearMediaItems()
             songs.forEach { s ->
-                val uri = if (!s.localFilePath.isNullOrEmpty()) s.localFilePath else s.streamUrl
+                val uri = if (!s.localFilePath.isNullOrEmpty()) s.localFilePath else s.absoluteStreamUrl
                 val mediaItem = MediaItem.Builder()
                     .setUri(uri)
                     .setMediaMetadata(
