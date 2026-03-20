@@ -1,3 +1,4 @@
+const mega = require('megajs');
 const fs = require('fs-extra');
 const path = require('path');
 const metadataManager = require('./metadataManager');
