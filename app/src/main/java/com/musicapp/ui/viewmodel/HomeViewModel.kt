@@ -70,14 +70,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 val englishDeferred = async { repository.fetchSongs("english hits") }
                 val technoDeferred = async { repository.fetchSongs("techno mix") }
 
-                // Await results
-                recommendedDeferred.await().onSuccess { _recommendedSongs.value = it }
-                becauseDeferred.await().onSuccess { _becauseYouListenedSongs.value = it }
-                trendingDeferred.await().onSuccess { _trendingSongs.value = it }
-                hindiDeferred.await().onSuccess { _hindiSongs.value = it }
-                englishDeferred.await().onSuccess { _englishSongs.value = it }
-                technoDeferred.await().onSuccess { _technoSongs.value = it }
+                // Await results individually — one failure shouldn't kill the others
+                var anySuccess = false
 
+                try { recommendedDeferred.await().onSuccess { _recommendedSongs.value = it; anySuccess = true } } catch (_: Exception) {}
+                try { becauseDeferred.await().onSuccess { _becauseYouListenedSongs.value = it; anySuccess = true } } catch (_: Exception) {}
+                try { trendingDeferred.await().onSuccess { _trendingSongs.value = it; anySuccess = true } } catch (_: Exception) {}
+                try { hindiDeferred.await().onSuccess { _hindiSongs.value = it; anySuccess = true } } catch (_: Exception) {}
+                try { englishDeferred.await().onSuccess { _englishSongs.value = it; anySuccess = true } } catch (_: Exception) {}
+                try { technoDeferred.await().onSuccess { _technoSongs.value = it; anySuccess = true } } catch (_: Exception) {}
+
+                if (!anySuccess) {
+                    _error.value = "Could not load songs. Check your internet connection."
+                }
             } catch (exception: Exception) {
                 _error.value = exception.message ?: "Failed to load songs"
             } finally {
