@@ -82,7 +82,17 @@ class MusicPlayerService : LifecycleService() {
     }
 
     private fun initializePlayer() {
-        exoPlayer = ExoPlayer.Builder(this).build().apply {
+        val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+            .setUserAgent("MusicPlayer/1.0 (Android)")
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15000)
+            .setReadTimeoutMs(15000)
+
+        val dataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(this, httpDataSourceFactory)
+
+        exoPlayer = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(androidx.media3.exoplayer.source.DefaultMediaSourceFactory(dataSourceFactory))
+            .build().apply {
             addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(playing: Boolean) {
                     _isPlaying.postValue(playing)
@@ -94,12 +104,15 @@ class MusicPlayerService : LifecycleService() {
                     _currentIndex.postValue(index)
                     val songs = _playlist.value ?: return
                     if (index in songs.indices) {
-                        _currentSong.postValue(songs[index])
+                        val song = songs[index]
+                        _currentSong.postValue(song)
+                        android.util.Log.d("PLAYER_DEBUG", "Transitioned to: ${song.title} (${song.source}) - URL: ${song.absoluteStreamUrl}")
                         updateNotification()
                     }
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
+                    android.util.Log.d("PLAYER_DEBUG", "Playback state changed: $playbackState")
                     when (playbackState) {
                         Player.STATE_READY -> {
                             _duration.postValue(exoPlayer?.duration ?: 0L)
@@ -113,6 +126,13 @@ class MusicPlayerService : LifecycleService() {
                         }
                         else -> {}
                     }
+                }
+
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    val currentTrack = _currentSong.value
+                    android.util.Log.e("PLAYER_ERROR", "ExoPlayer Error for: ${currentTrack?.title} [Source: ${currentTrack?.source}]", error)
+                    android.util.Log.e("PLAYER_ERROR", "Error URL: ${currentTrack?.absoluteStreamUrl}")
+                    android.util.Log.e("PLAYER_ERROR", "Error Code: ${error.errorCode} (${error.errorCodeName})")
                 }
             })
         }
@@ -162,6 +182,8 @@ class MusicPlayerService : LifecycleService() {
             player.clearMediaItems()
             songs.forEach { s ->
                 val uri = if (!s.localFilePath.isNullOrEmpty()) s.localFilePath else s.absoluteStreamUrl
+                android.util.Log.d("PLAYER_DEBUG", "Adding to playlist: ${s.title} [Source: ${s.source}] URI: $uri")
+                
                 val mediaItem = MediaItem.Builder()
                     .setUri(uri)
                     .setMediaMetadata(
