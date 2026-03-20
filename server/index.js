@@ -98,10 +98,12 @@ function transformTrack(track) {
   let streamUrl = "";
   if (track.encrypted_media_url) {
     streamUrl = decryptUrl(track.encrypted_media_url);
-  } else if (track.media_preview_url) {
-    streamUrl = track.media_preview_url
+  if (track.media_preview_url) {
+    const previewUrl = track.media_preview_url
       .replace("preview.saavncdn.com", "aac.saavncdn.com")
       .replace("_96_p.mp4", "_320.mp4");
+    // Only return if it's not a known broken pattern (some English songs use different CDN)
+    if (!streamUrl) streamUrl = previewUrl;
   }
 
   let albumArtUrl = track.image || track.albumArtUrl || "";
@@ -246,7 +248,7 @@ app.get("/v1/search", async (req, res) => {
         album: "YouTube",
         albumArtUrl: v.thumbnail,
         perma_url: v.url,
-        streamUrl: null,
+        streamUrl: "", // Empty string instead of null for non-nullable Android field
         play_count: (v.views || 0).toString(),
         duration: v.seconds * 1000,
         source: "youtube",
@@ -258,7 +260,17 @@ app.get("/v1/search", async (req, res) => {
       console.error("YouTube search failed:", e.message);
     }
 
-    res.json({ songs: [...jioSaavnSongs, ...youtubeSongs] });
+    // Search MEGA songs
+    const lowQuery = query.toLowerCase();
+    const megaSongs = megaManager.getSongs()
+      .filter(s => 
+        s.title.toLowerCase().includes(lowQuery) || 
+        s.artist.toLowerCase().includes(lowQuery) ||
+        (s.album && s.album.toLowerCase().includes(lowQuery))
+      )
+      .map(s => ({ ...s, source: "mega" }));
+
+    res.json({ songs: [...megaSongs, ...jioSaavnSongs, ...youtubeSongs] });
   } catch (error) {
     console.error("Search error:", error.message);
     res.status(500).json({ error: "Search failed", songs: [] });
