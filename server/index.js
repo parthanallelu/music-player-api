@@ -36,15 +36,14 @@ app.get("/", (req, res) => {
   res.json({
     status: "ok",
     service: "MusicPlayer API",
-    version: "2.0.0",
+    version: "2.1.2",
     endpoints: [
       "GET /v1/songs",
       "GET /v1/songs?q=query",
       "GET /v1/songs/:id",
       "GET /v1/search?q=query",
       "GET /v1/recommendations",
-      "GET /v1/genres?genre=name",
-      "GET /v1/artists/:name",
+      "GET /v1/debug/all-handles",
     ],
   });
 });
@@ -168,6 +167,14 @@ app.get("/v1/debug/clear-cache", async (req, res) => {
   } catch (err) {
     res.status(500).send(err.message);
   }
+});
+
+app.get("/v1/debug/all-handles", (req, res) => {
+  const songs = megaManager.getSongs();
+  res.json({
+    count: songs.length,
+    handles: songs.map(s => s.handle)
+  });
 });
 
 // ─── GET /v1/songs ───────────────────────────────────────
@@ -355,11 +362,15 @@ app.get("/v1/mega-stream/:id", async (req, res) => {
     const requestedId = req.params.id;
     const handle = requestedId.startsWith('mega_') ? requestedId.replace('mega_', '') : requestedId;
     
-    console.log(`Stream request for ID: ${requestedId}, handle: ${handle}`);
+    console.log(`MEGA Stream Request: ID=${requestedId}, extracted handle=${handle}`);
     const song = megaManager.getSongByHandle(handle);
     
     if (!song) {
-      console.warn(`Song with handle ${handle} not found in index.`);
+      const allSongs = megaManager.getSongs();
+      console.warn(`404: Handle [${handle}] not found. Total songs: ${allSongs.length}`);
+      if (allSongs.length > 0) {
+        console.log(`Sample handles in inventory: ${allSongs.slice(0, 3).map(s => s.handle).join(', ')}`);
+      }
       return res.status(404).send('Song not found in indexed MEGA storage');
     }
 
