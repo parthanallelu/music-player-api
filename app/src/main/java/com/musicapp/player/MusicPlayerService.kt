@@ -31,6 +31,7 @@ class MusicPlayerService : LifecycleService() {
     private val binder = MusicBinder()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var repository: MusicRepository
+    private var isManualSongChange = false
 
     // Position updater — stored for cleanup
     private val handler = Handler(Looper.getMainLooper())
@@ -116,11 +117,15 @@ class MusicPlayerService : LifecycleService() {
                     when (playbackState) {
                         Player.STATE_READY -> {
                             _duration.postValue(exoPlayer?.duration ?: 0L)
+                            isManualSongChange = false
+                        }
+                        Player.STATE_BUFFERING -> {
+                            isManualSongChange = false
                         }
                         Player.STATE_ENDED -> {
                             _isPlaying.postValue(false)
                             val current = _currentSong.value
-                            if (current != null && exoPlayer?.hasNextMediaItem() == false) {
+                            if (current != null && exoPlayer?.hasNextMediaItem() == false && !isManualSongChange) {
                                 serviceScope.launch { handleAutoRadio(current) }
                             }
                         }
@@ -164,7 +169,7 @@ class MusicPlayerService : LifecycleService() {
             val candidates = songs.filter { it.id != excludeId && it.source in listOf("jiosaavn", "mega") }
             if (candidates.isNotEmpty()) {
                 val next = candidates.random()
-                handler.post { playSong(next, listOf(next), 0) }
+                handler.post { playSong(next, listOf(next), 0, isManual = false) }
                 return true
             }
         }
@@ -173,7 +178,8 @@ class MusicPlayerService : LifecycleService() {
 
     // ─── Playback Controls ───────────────────────────────
 
-    fun playSong(song: Song, songs: List<Song> = listOf(song), startIndex: Int = 0) {
+    fun playSong(song: Song, songs: List<Song> = listOf(song), startIndex: Int = 0, isManual: Boolean = true) {
+        isManualSongChange = isManual
         _playlist.postValue(songs)
         _currentSong.postValue(song)
         _currentIndex.postValue(startIndex)
