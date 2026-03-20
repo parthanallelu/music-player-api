@@ -6,7 +6,9 @@ const mm = require('music-metadata');
 
 const CACHE_DIR = path.join(__dirname, 'cache', 'covers');
 const ARTIST_CACHE_FILE = path.join(__dirname, 'cache', 'artists.json');
+const BUFFER_CACHE_DIR = path.join(__dirname, 'cache', 'buffers');
 fs.ensureDirSync(CACHE_DIR);
+fs.ensureDirSync(BUFFER_CACHE_DIR);
 
 // In-memory cache with 24h TTL
 const artistCache = new NodeCache({ stdTTL: 86400 });
@@ -148,8 +150,18 @@ class MetadataManager {
     }
 
     async getDurationFromMega(fileNode) {
+        const songId = `mega_${fileNode.handle}`;
+        const bufferPath = path.join(BUFFER_CACHE_DIR, `${songId}.bin`);
+
         try {
-            // Download first 1MB for metadata parsing
+            // Check if we have this buffer cached
+            if (await fs.pathExists(bufferPath)) {
+                const buffer = await fs.readFile(bufferPath);
+                const metadata = await mm.parseBuffer(buffer, { mimeType: 'audio/mpeg', size: fileNode.size });
+                return metadata.format.duration || 0;
+            }
+
+            // Download first 1MB for metadata parsing and caching
             const stream = fileNode.download({ start: 0, end: 1024 * 1024 });
             const chunks = [];
             
@@ -158,6 +170,9 @@ class MetadataManager {
                 stream.on('end', async () => {
                     try {
                         const buffer = Buffer.concat(chunks);
+                        // Save to buffer cache for instant playback start
+                        await fs.writeFile(bufferPath, buffer).catch(e => console.warn('Buffer save failed:', e.message));
+                        
                         const metadata = await mm.parseBuffer(buffer, { mimeType: 'audio/mpeg', size: fileNode.size });
                         resolve(metadata.format.duration || 0);
                     } catch (e) {
@@ -170,11 +185,19 @@ class MetadataManager {
                 setTimeout(() => {
                     stream.destroy();
                     resolve(0);
-                }, 10000);
+                }, 15000);
             });
         } catch (err) {
             return 0;
         }
+    }
+
+    async getCachedBuffer(songId) {
+        const bufferPath = path.join(BUFFER_CACHE_DIR, `${songId}.bin`);
+        if (await fs.pathExists(bufferPath)) {
+            return await fs.readFile(bufferPath);
+        }
+        return null;
     }
 }
 

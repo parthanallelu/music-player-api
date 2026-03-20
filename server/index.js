@@ -173,7 +173,18 @@ app.get("/v1/songs", async (req, res) => {
       songs = [...megaSongs, ...songs];
     }
 
-    res.json({ songs });
+    // Pagination
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const startIndex = (page - 1) * limit;
+    const paginatedSongs = songs.slice(startIndex, startIndex + limit);
+
+    res.json({ 
+      songs: paginatedSongs,
+      total: songs.length,
+      page,
+      limit
+    });
   } catch (error) {
     console.error("Error fetching songs:", error.message);
     res.status(500).json({ error: "Failed to fetch songs", songs: [] });
@@ -327,6 +338,10 @@ app.get("/v1/mega-stream/:id", async (req, res) => {
       return res.status(404).send('Song not found in indexed MEGA storage');
     }
 
+    if (!song.node) {
+      return res.status(503).send('Song metadata is loaded, but connection to MEGA is still initializing. Please try again in a few seconds.');
+    }
+
     const fileSize = song.node.size;
     const range = req.headers.range;
 
@@ -339,15 +354,37 @@ app.get("/v1/mega-stream/:id", async (req, res) => {
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
       const chunksize = (end - start) + 1;
 
-      res.status(206).set({
-        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
-        'Content-Length': chunksize,
-      });
+      // PERFORMANCE: Check if we can serve from buffer cache (first 1MB)
+      const cachedBuffer = await metadataManager.getCachedBuffer(song.id);
+      const BUFFER_SIZE = 1024 * 1024;
 
-      song.node.download({ start, end }).pipe(res);
+      if (cachedBuffer && start === 0 && end >= BUFFER_SIZE - 1) {
+        console.log(`Serving first 1MB from CACHE for ${song.title}`);
+        res.status(206).set({
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': chunksize,
+        });
+
+        // Send cached buffer then stream the rest
+        res.write(cachedBuffer);
+        const remainingStream = song.node.download({ start: BUFFER_SIZE, end });
+        remainingStream.pipe(res);
+      } else {
+        res.status(206).set({
+          'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+          'Content-Length': chunksize,
+        });
+        song.node.download({ start, end }).pipe(res);
+      }
     } else {
       res.setHeader('Content-Length', fileSize);
-      song.node.download().pipe(res);
+      const cachedBuffer = await metadataManager.getCachedBuffer(song.id);
+      if (cachedBuffer) {
+        res.write(cachedBuffer);
+        song.node.download({ start: cachedBuffer.length }).pipe(res);
+      } else {
+        song.node.download().pipe(res);
+      }
     }
   } catch (error) {
     console.error('Mega Stream Error:', error.message);
