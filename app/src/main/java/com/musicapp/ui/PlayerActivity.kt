@@ -75,7 +75,7 @@ class PlayerActivity : AppCompatActivity() {
                     if (info.isNotEmpty()) info.append(" • ")
                     info.append(it.year)
                 }
-                if (it.genre != "unknown" && it.genre.isNotEmpty()) {
+                if (it.genre != "unknown" && !it.genre.isNullOrEmpty()) {
                     if (info.isNotEmpty()) info.append(" • ")
                     info.append(it.genre)
                 }
@@ -92,7 +92,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
 
                 // Artist Image
-                if (it.artistImage.isNotEmpty()) {
+                if (!it.artistImage.isNullOrEmpty()) {
                     binding.ivArtist.load(it.artistImage) {
                         crossfade(true)
                         placeholder(R.drawable.bg_album_art_placeholder)

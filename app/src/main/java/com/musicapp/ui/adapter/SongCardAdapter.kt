@@ -41,7 +41,7 @@ class SongCardAdapter(
             if (song.year > 0) {
                 info.append(" • ").append(song.year)
             }
-            if (song.genre != "unknown" && song.genre.isNotEmpty()) {
+            if (song.genre != "unknown" && !song.genre.isNullOrEmpty()) {
                 info.append(" • ").append(song.genre)
             }
             tvSubtitle.text = info.toString()
