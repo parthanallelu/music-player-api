@@ -66,19 +66,27 @@ class MegaManager {
             const folder = mega.File.fromURL(this.folderUrl);
             await folder.loadAttributes();
             
-            this.songs = this.songs || []; // Keep existing songs if any
+            this.songs = this.songs || [];
             const processedHandles = new Set();
+            let loggedSamples = 0;
             
             const crawl = async (node) => {
                 if (node.children) {
-                    for (const child of node.children) {
-                        await crawl(child);
-                    }
+                    for (const child of node.children) await crawl(child);
                 } else if (node.name?.toLowerCase().endsWith('.mp3')) {
-                    // Correctly extract mega handle
-                    const handle = node.handle || (node.downloadId && node.downloadId[1]);
-                    if (!handle) {
-                        console.warn(`No handle found for node: ${node.name}`);
+                    // ROBUST HANDLE EXTRACTION
+                    let handle = null;
+                    if (typeof node.handle === 'string') handle = node.handle;
+                    else if (node.downloadId && Array.isArray(node.downloadId)) handle = node.downloadId[1];
+                    else if (node.h) handle = node.h; // Common internal property in some versions
+                    
+                    if (loggedSamples < 5) {
+                        console.log(`Crawl debug [${node.name}]: handle=${handle}, downloadId=${JSON.stringify(node.downloadId)}, hasH=${!!node.h}`);
+                        loggedSamples++;
+                    }
+
+                    if (!handle || handle === 'undefined') {
+                        console.warn(`[SKIP] No valid handle found for: ${node.name}`);
                         return;
                     }
 
@@ -112,7 +120,7 @@ class MegaManager {
                     } else {
                         this.songs.push(enriched);
                     }
-                    await new Promise(r => setTimeout(r, 100)); // Minimal delay
+                    await new Promise(r => setTimeout(r, 100));
                 }
             };
 

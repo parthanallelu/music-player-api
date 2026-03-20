@@ -145,6 +145,31 @@ function deduplicateSongs(songs) {
   });
 }
 
+// ─── DEBUG ENDPOINTS ──────────────────────────────────────
+app.get("/v1/debug/cache", async (req, res) => {
+  const songs = megaManager.getSongs();
+  res.json({
+    total: songs.length,
+    indexing: megaManager.indexing,
+    corruptCount: songs.filter(s => s.id.includes('undefined')).length,
+    sample: songs.slice(0, 5)
+  });
+});
+
+app.get("/v1/debug/clear-cache", async (req, res) => {
+  try {
+    const cacheFile = path.join(__dirname, 'cache', 'songs.json');
+    if (fs.existsSync(cacheFile)) {
+      fs.unlinkSync(cacheFile);
+      res.send('Cache file deleted. Restart the server or wait for background crawl.');
+    } else {
+      res.send('Cache file not found.');
+    }
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
 // ─── GET /v1/songs ───────────────────────────────────────
 app.get("/v1/songs", async (req, res) => {
   try {
@@ -499,6 +524,19 @@ app.listen(PORT, async () => {
   console.log(`    Search:  http://localhost:${PORT}/v1/search?q=tum%20hi%20ho`);
 
   if (process.env.RENDER) startKeepAlive();
+
+  // Automatic cache recovery for MEGA handles
+  const cacheFile = path.join(__dirname, 'cache', 'songs.json');
+  if (fs.existsSync(cacheFile)) {
+    try {
+      const raw = fs.readFileSync(cacheFile, 'utf8');
+      if (raw.includes('mega_undefined')) {
+        console.warn('Corrupt MEGA cache detected on disk. Purging...');
+        fs.unlinkSync(cacheFile);
+      }
+    } catch (e) {}
+  }
+
   // Non-blocking: MEGA songs will appear once indexing completes
   megaManager.init().catch(err => console.error('MEGA init failed:', err.message));
 });
