@@ -113,6 +113,7 @@ class MusicPlayerService : LifecycleService() {
             addListener(object : Player.Listener {
                 override fun onIsPlayingChanged(playing: Boolean) {
                     _isPlaying.postValue(playing)
+                    performNotificationUpdate()
                     if (playing) updateNotification()
                 }
 
@@ -289,20 +290,33 @@ class MusicPlayerService : LifecycleService() {
             .build()
     }
 
+    private fun createActionPendingIntent(action: String): PendingIntent {
+        val intent = Intent(this, MusicPlayerService::class.java).apply {
+            this.action = action
+        }
+        return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    private fun performNotificationUpdate() {
+        val notification = createNotification()
+        val notificationManager = getSystemService(android.content.Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.notify(Constants.PLAYER_NOTIFICATION_ID, notification)
+    }
+
     private fun updateNotification() {
         val song = _currentSong.value
-        if (song != null && !song.albumArtUrl.isNullOrEmpty()) {
+        if (song != null && !song.absoluteAlbumArtUrl.isNullOrEmpty()) {
             serviceScope.launch {
                 val request = ImageRequest.Builder(this@MusicPlayerService)
                     .data(song.absoluteAlbumArtUrl)
                     .build()
                 val result = imageLoader.execute(request)
-                val bitmap = (result.drawable as? BitmapDrawable)?.bitmap
-                if (bitmap != currentBitmap) {
-                    currentBitmap = bitmap
-                    handler.post { performNotificationUpdate() }
-                } else {
-                    handler.post { performNotificationUpdate() }
+                if (result is coil.request.SuccessResult) {
+                    val bitmap = (result.drawable as? BitmapDrawable)?.bitmap
+                    if (bitmap != currentBitmap) {
+                        currentBitmap = bitmap
+                        handler.post { performNotificationUpdate() }
+                    }
                 }
             }
         } else {
@@ -311,48 +325,21 @@ class MusicPlayerService : LifecycleService() {
         }
     }
 
-    private fun performNotificationUpdate() {
-        try {
-            val manager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-            manager.notify(Constants.PLAYER_NOTIFICATION_ID, createNotification())
-        } catch (e: Exception) {
-            android.util.Log.w("MusicPlayerService", "Notification update failed", e)
-        }
-    }
-
-    private fun createActionPendingIntent(action: String): PendingIntent {
-        val intent = Intent(this, MusicPlayerService::class.java).apply { this.action = action }
-        return PendingIntent.getService(
-            this, action.hashCode(), intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
-
-    // ─── Lifecycle ───────────────────────────────────────
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        startForeground(Constants.PLAYER_NOTIFICATION_ID, createNotification())
-
-        when (intent?.action) {
-            "PLAY_PAUSE" -> playPause()
-            "NEXT" -> next()
-            "PREVIOUS" -> previous()
-            "STOP" -> {
-                exoPlayer?.stop()
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
+        intent?.action?.let { action ->
+            when (action) {
+                "PLAY_PAUSE" -> playPause()
+                "NEXT" -> next()
+                "PREVIOUS" -> previous()
             }
         }
-        return START_STICKY
+        return super.onStartCommand(intent, flags, startId)
     }
 
     override fun onDestroy() {
+        super.onDestroy()
         handler.removeCallbacks(positionUpdater)
         mediaSession?.release()
-        mediaSession = null
         exoPlayer?.release()
-        exoPlayer = null
-        super.onDestroy()
     }
 }
