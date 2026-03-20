@@ -49,6 +49,7 @@ class MusicPlayerService : LifecycleService() {
             exoPlayer?.let { player ->
                 if (player.isPlaying) {
                     _currentPosition.postValue(player.currentPosition)
+                    performNotificationUpdate()
                 }
             }
             handler.postDelayed(this, 500)
@@ -213,6 +214,7 @@ class MusicPlayerService : LifecycleService() {
                             .setArtist(s.artist)
                             .setAlbumTitle(s.album)
                             .setArtworkUri(Uri.parse(s.absoluteAlbumArtUrl))
+                            .setDurationMs(s.duration)
                             .build()
                     )
                     .build()
@@ -252,6 +254,8 @@ class MusicPlayerService : LifecycleService() {
     private fun createNotification(): Notification {
         val song = _currentSong.value
         val isCurrentlyPlaying = exoPlayer?.isPlaying == true
+        val position = exoPlayer?.currentPosition ?: 0L
+        val duration = exoPlayer?.duration ?: 0L
 
         val contentIntent = PendingIntent.getActivity(
             this, 0,
@@ -268,6 +272,7 @@ class MusicPlayerService : LifecycleService() {
             .setContentIntent(contentIntent)
             .setOngoing(isCurrentlyPlaying)
             .setLargeIcon(currentBitmap)
+            .setProgress(duration.toInt(), position.toInt(), false)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setStyle(
                 androidx.media.app.NotificationCompat.MediaStyle()
