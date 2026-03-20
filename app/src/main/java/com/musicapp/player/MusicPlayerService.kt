@@ -102,11 +102,11 @@ class MusicPlayerService : LifecycleService() {
 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     val index = exoPlayer?.currentMediaItemIndex ?: 0
-                    _currentIndex.postValue(index)
+                    _currentIndex.value = index
                     val songs = _playlist.value ?: return
                     if (index in songs.indices) {
                         val song = songs[index]
-                        _currentSong.postValue(song)
+                        _currentSong.value = song
                         android.util.Log.d("PLAYER_DEBUG", "Transitioned to: ${song.title} (${song.source}) - URL: ${song.absoluteStreamUrl}")
                         updateNotification()
                     }
@@ -180,9 +180,9 @@ class MusicPlayerService : LifecycleService() {
 
     fun playSong(song: Song, songs: List<Song> = listOf(song), startIndex: Int = 0, isManual: Boolean = true) {
         isManualSongChange = isManual
-        _playlist.postValue(songs)
-        _currentSong.postValue(song)
-        _currentIndex.postValue(startIndex)
+        _playlist.value = songs
+        _currentSong.value = song
+        _currentIndex.value = startIndex
 
         exoPlayer?.let { player ->
             player.clearMediaItems()
