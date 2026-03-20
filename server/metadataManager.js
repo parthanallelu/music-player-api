@@ -2,6 +2,7 @@ const axios = require('axios');
 const fs = require('fs-extra');
 const path = require('path');
 const NodeCache = require('node-cache');
+const mm = require('music-metadata');
 
 const CACHE_DIR = path.join(__dirname, 'cache', 'covers');
 const ARTIST_CACHE_FILE = path.join(__dirname, 'cache', 'artists.json');
@@ -65,7 +66,14 @@ class MetadataManager {
             year: song.year || 0,
             genre: this.normalizeGenre(song.genre),
             artistImage: '',
+            duration: song.duration || 0,
         };
+
+        // STEP 0: Get duration from MEGA if missing
+        if (enriched.duration === 0 && song.node) {
+            const megaDuration = await this.getDurationFromMega(song.node);
+            if (megaDuration > 0) enriched.duration = Math.round(megaDuration * 1000);
+        }
 
         // Use artist cache if available
         const cached = artistCache.get(song.artist);
@@ -137,6 +145,36 @@ class MetadataManager {
     async getCoverPath(songId) {
         const cachePath = path.join(CACHE_DIR, `${songId}.jpg`);
         return (await fs.pathExists(cachePath)) ? cachePath : null;
+    }
+
+    async getDurationFromMega(fileNode) {
+        try {
+            // Download first 1MB for metadata parsing
+            const stream = fileNode.download({ start: 0, end: 1024 * 1024 });
+            const chunks = [];
+            
+            return new Promise((resolve) => {
+                stream.on('data', chunk => chunks.push(chunk));
+                stream.on('end', async () => {
+                    try {
+                        const buffer = Buffer.concat(chunks);
+                        const metadata = await mm.parseBuffer(buffer, { mimeType: 'audio/mpeg', size: fileNode.size });
+                        resolve(metadata.format.duration || 0);
+                    } catch (e) {
+                        resolve(0);
+                    }
+                });
+                stream.on('error', () => resolve(0));
+                
+                // Safety timeout
+                setTimeout(() => {
+                    stream.destroy();
+                    resolve(0);
+                }, 10000);
+            });
+        } catch (err) {
+            return 0;
+        }
     }
 }
 

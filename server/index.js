@@ -327,17 +327,28 @@ app.get("/v1/mega-stream/:id", async (req, res) => {
       return res.status(404).send('Song not found in indexed MEGA storage');
     }
 
-    const stream = song.node.download();
-
-    // Handle stream errors before they become unhandled exceptions
-    stream.on('error', (err) => {
-      console.error('MEGA stream error:', err.message);
-      if (!res.headersSent) res.status(500).send('Stream error');
-    });
+    const fileSize = song.node.size;
+    const range = req.headers.range;
 
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Accept-Ranges', 'bytes');
-    stream.pipe(res);
+
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunksize = (end - start) + 1;
+
+      res.status(206).set({
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Content-Length': chunksize,
+      });
+
+      song.node.download({ start, end }).pipe(res);
+    } else {
+      res.setHeader('Content-Length', fileSize);
+      song.node.download().pipe(res);
+    }
   } catch (error) {
     console.error('Mega Stream Error:', error.message);
     if (!res.headersSent) res.status(500).send('Streaming failed');
