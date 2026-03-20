@@ -12,7 +12,6 @@ const megaManager = require('./megaManager');
 const metadataManager = require('./metadataManager');
 const fs = require('fs-extra');
 const path = require('path');
-const ytSearch = require("yt-search");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -98,6 +97,7 @@ function transformTrack(track) {
   let streamUrl = "";
   if (track.encrypted_media_url) {
     streamUrl = decryptUrl(track.encrypted_media_url);
+  }
   if (track.media_preview_url) {
     const previewUrl = track.media_preview_url
       .replace("preview.saavncdn.com", "aac.saavncdn.com")
@@ -235,31 +235,6 @@ app.get("/v1/search", async (req, res) => {
       console.error("JioSaavn search failed:", e.message);
     }
 
-    // 2. Fetch from YouTube
-    let youtubeSongs = [];
-    try {
-      const ytResult = await ytSearch(query.trim());
-      const startIdx = (page - 1) * limit;
-      const vids = ytResult.videos.slice(startIdx, startIdx + limit);
-      youtubeSongs = vids.map(v => ({
-        id: v.videoId,
-        title: v.title,
-        artist: v.author.name,
-        album: "YouTube",
-        albumArtUrl: v.thumbnail,
-        perma_url: v.url,
-        streamUrl: "", // Empty string instead of null for non-nullable Android field
-        play_count: (v.views || 0).toString(),
-        duration: v.seconds * 1000,
-        source: "youtube",
-        genre: "unknown",
-        year: 0,
-        artistImage: "",
-      }));
-    } catch (e) {
-      console.error("YouTube search failed:", e.message);
-    }
-
     // Search MEGA songs
     const lowQuery = query.toLowerCase();
     const megaSongs = megaManager.getSongs()
@@ -270,7 +245,7 @@ app.get("/v1/search", async (req, res) => {
       )
       .map(s => ({ ...s, source: "mega" }));
 
-    res.json({ songs: [...megaSongs, ...jioSaavnSongs, ...youtubeSongs] });
+    res.json({ songs: [...megaSongs, ...jioSaavnSongs] });
   } catch (error) {
     console.error("Search error:", error.message);
     res.status(500).json({ error: "Search failed", songs: [] });
