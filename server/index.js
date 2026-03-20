@@ -252,7 +252,8 @@ app.get("/v1/search", async (req, res) => {
     const uniqueMegaSongs = Array.from(new Set(megaSongsOrdered.map(s => s.id)))
       .map(id => megaSongsOrdered.find(s => s.id === id));
 
-    res.json({ songs: [...uniqueMegaSongs, ...jioSaavnSongs] });
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    res.json({ songs: [...resolveMegaUrls(uniqueMegaSongs, baseUrl), ...jioSaavnSongs] });
   } catch (error) {
     console.error("Search error:", error.message);
     res.status(500).json({ error: "Search failed", songs: [] });
